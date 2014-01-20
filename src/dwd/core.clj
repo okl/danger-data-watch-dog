@@ -63,17 +63,17 @@ where the first vec contains the vec of column headers (of
 which there should only be one) and the second vec is an
 vec of values of which there should only be one"
   [result]
-  (let [extracted-value (first (second (print-expr result)))]
+  (let [extracted-value (print-expr (first (second (print-expr result))))]
     (cond
      (= extracted-value 1) :pass
-     (= extracted-value 0) :fail)
+     (= extracted-value 0) :fail
     :else
     (do
       ;; log this
       (print-expr (str "Unable to determine whether >>>"
                        result
                        "<<< is a success or failure"))
-      :error)))
+      :error))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## check
@@ -119,7 +119,7 @@ vec of values of which there should only be one"
 (def sql-lite-test-db {:subprotocol "sqlite"
                        ;; see https://www.sqlite.org/inmemorydb.html
                        ;; about sharing memory databases across connections
-                          :subname ":memory:?cache=shared"
+                          :subname "test?mode=memory&cache=shared"
                           :user "test"
                           :password "test"})
 
