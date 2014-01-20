@@ -117,11 +117,7 @@ vec of values of which there should only be one"
 
 
 (def sql-lite-test-db {:subprotocol "sqlite"
-                       ;; see https://www.sqlite.org/inmemorydb.html
-                       ;; about sharing memory databases across connections
-                          :subname "test?mode=memory&cache=shared"
-                          :user "test"
-                          :password "test"})
+                       :subname "test/db/test.db"})
 
 (defn bootstrap-sqlite []
   (let [e #(j/execute! sql-lite-test-db %)
