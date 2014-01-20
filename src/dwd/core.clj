@@ -4,7 +4,8 @@ back whether they return 1 or 0"
   {:author "Alex Bahouth"
    :date "Jan 20, 2014"}
   (:require
-   [clojure.string :refer [join]])
+   [clojure.string :refer [join]]
+   [clojure.java.jdbc :as j])
   (:require
    [diesel.core :refer :all]
    [roxxi.utils.print :refer :all]))
@@ -20,8 +21,7 @@ back whether they return 1 or 0"
   (update-in env-map [:desc] #(joins % desc)))
 
 (defn- config-db [env-map conn-info]
-  (update-in env-map [:db-conn-info] #(joins % conn-info)))
-
+  (assoc env-map :db-conn-info conn-info))
 
 
 (defmacro deforder [id orders]
@@ -47,8 +47,12 @@ back whether they return 1 or 0"
   (exec-interp expr (append-desc env desc)))
 
 
-(defn- make-rec [id desc val]
-  {:id id :desc desc :result val})
+
+(defrecord CheckResult [id desc val])
+
+(defn- make-check-result [id desc val]
+  (CheckResult. id desc val))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## check
@@ -57,11 +61,15 @@ back whether they return 1 or 0"
 (defmethod exec-interp :check [[_ id desc expr] env]
   (let [new-env (append-desc env desc)
         check-result (exec-interp expr new-env)]
-    (swap! results #(conj % (make-rec id (:desc new-env) check-result)))))
+    (swap! results #(conj % (make-check-result id (:desc new-env) check-result)))))
 
 
-;; (defmethod exec-interp :with-db [[_ conn-info expr] env]
-;;   (binding
+(defmethod exec-interp :with-db [[_ conn-info-or-sym expr] env]
+  (let [conn-info (if (symbol? conn-info-or-sym)
+                    @(resolve conn-info-or-sym)
+                    conn-info-or-sym)
+        new-env (config-db env conn-info)]
+    (exec-interp expr new-env)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## query
@@ -72,14 +80,35 @@ back whether they return 1 or 0"
 ;;   '(query QUERY)+)
 ;; ```
 ;;
-(defmethod exec-interp :query [[_ sql-query] env] sql-query)
+(defmethod exec-interp :query [[_ sql-query] env]
+  (print-expr (j/query (:db-conn-info env) [sql-query] :as-arrays? true)))
 
+
+
+(def sql-lite-test-db {:subprotocol "sqlite"
+                       ;; see https://www.sqlite.org/inmemorydb.html
+                       ;; about sharing memory databases across connections
+                          :subname ":memory:?cache=shared"
+                          :user "test"
+                          :password "test"})
+
+(defn bootstrap-sqlite []
+  (let [e #(j/execute! sql-lite-test-db %)
+        q #(j/query sql-lite-test-db %)]
+    (e ["CREATE TABLE IF NOT EXISTS test (name varchar(10), age int)"])
+    (e ["INSERT INTO test SELECT 'Alex' AS name, 30 AS age
+UNION SELECT 'Karl', 28
+UNION SELECT 'Eric', 29
+UNION SELECT 'Egor', 23"])))
+
+(bootstrap-sqlite)
 
 
 (deforder three-test
   (testing "if it's truth that"
     (check :my-id "this returns 5"
-           (query 5))))
+           (with-db sql-lite-test-db
+             (query "select CASE WHEN count(*) > 3 THEN 1 ELSE 0 END AS a_test from test")))))
 
 (deforder four-test
   (testing "can we check"
@@ -91,8 +120,9 @@ back whether they return 1 or 0"
 
 
 
-(exec-interp '(query 5) {})
-(print-expr @results)
+;; (exec-interp '(query 5) {})
+
 (print-expr (exec-interp three-test {}))
-(print-expr (exec-interp four-test {}))
+(print-expr @results)
+;;(print-expr (exec-interp four-test {}))
 (swap! results empty)
