@@ -4,7 +4,8 @@ back whether they return 1 or 0"
   {:author "Alex Bahouth"
    :date "Jan 20, 2014"}
   (:require [clojure.string :refer [join]]
-            [clojure.java.jdbc :as j])
+            [clojure.java.jdbc :as j]
+            [clojure.tools.logging :as log])
   (:require [diesel.core :refer :all]
             [roxxi.utils.print :refer :all]))
 
@@ -37,8 +38,9 @@ back whether they return 1 or 0"
 (definterpreter exec-interp [env]
   ['testing => :testing]
   ['check => :check]
-  ['query => :query]
-  ['with-db => :with-db])
+  ;; Supporting Databases
+  ['with-db => :with-db]
+  ['query => :query])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
@@ -56,21 +58,21 @@ back whether they return 1 or 0"
   (CheckResult. id desc val))
 
 
-
 (defn- result->pass-fail
   "It's assumed that an vec of vecs is returned
 where the first vec contains the vec of column headers (of
 which there should only be one) and the second vec is an
 vec of values of which there should only be one"
   [result]
-  (let [extracted-value (print-expr (first (second (print-expr result))))]
+
+  (let [extracted-value (log/spy (first (second (log/spy result))))]
     (cond
      (= extracted-value 1) :pass
      (= extracted-value 0) :fail
     :else
     (do
       ;; log this
-      (print-expr (str "Unable to determine whether >>>"
+      (log/spy (str "Unable to determine whether >>>"
                        result
                        "<<< is a success or failure"))
       :error))))
@@ -84,7 +86,7 @@ vec of values of which there should only be one"
         result (try
                  (exec-interp expr new-env)
                  (catch java.lang.Exception e
-                     (print-expr e)))
+                     (log/spy e)))
         pass-fail (result->pass-fail result)
         check-result (make-check-result (or (:id new-env) :anon)
                                         (:desc new-env)
@@ -112,57 +114,10 @@ vec of values of which there should only be one"
 ;; ```
 ;;
 (defmethod exec-interp :query [[_ sql-query] env]
-  (j/query (:db-conn-info env) [sql-query] :as-arrays? true))
-
-
-
-(def sql-lite-test-db {:subprotocol "sqlite"
-                       :subname "test/db/test.db"})
-
-(defn bootstrap-sqlite []
-  (let [e #(j/execute! sql-lite-test-db %)
-        q #(j/query sql-lite-test-db %)]
-    (e ["CREATE TABLE IF NOT EXISTS test (name varchar(10), age int)"])
-    (e [(join " "
-              ["INSERT INTO test SELECT 'Alex' AS name, 30 AS age"
-               "UNION SELECT 'Karl', 28"
-               "UNION SELECT 'Eric', 29"
-               "UNION SELECT 'Egor', 23"])])))
-
-
-(bootstrap-sqlite)
-
-
-(deforder three-test
-  (testing "if it's truth that"
-    (check "this returns 5"
-           (with-db sql-lite-test-db
-             (query "select CASE WHEN count(*) > 3 THEN 1 ELSE 0 END AS a_test from test")))))
-
-(deforder four-test
-  (with-db sql-lite-test-db
-    (testing "if it's truth that"
-      (check "this returns 5"
-             (query "select CASE WHEN count(*) > 3 THEN 1 ELSE 0 END AS a_test from test"))
-      (check "this returns 10"
-             (query "select CASE WHEN count(*) > 20 THEN 1 ELSE 0 END AS a_test from test")))))
-
-(deforder five-test
-  (testing "can we check"
-    (with-db sql-lite-test-db
-      (testing "if it's truth that"
-        (check "this returns 5"
-               (query "select 5 from test limit 1"))))))
-
-
-
-
-
-;; (exec-interp '(query 5) {})
-
-(print-expr (exec-interp three-test {}))
-(print-expr (exec-interp four-test {}))
-(print-expr (exec-interp five-test {}))
-(print-expr @results)
-;;(print-expr (exec-interp four-test {}))
-(swap! results empty)
+  (let [db-conn (:db-conn-info env)]
+    (if (nil? db-conn)
+      (throw
+       (RuntimeException.
+        (str "No Database connection specified. Make sure this `query` block is "
+             "inside of a `with-db` block")))
+      (j/query (:db-conn-info env) [sql-query] :as-arrays? true))))
