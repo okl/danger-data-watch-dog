@@ -65,16 +65,17 @@ which there should only be one) and the second vec is an
 vec of values of which there should only be one"
   [result]
 
-  (let [extracted-value (log/spy (first (second (log/spy result))))]
+  (let [extracted-value (first (second result))]
     (cond
      (= extracted-value 1) :pass
      (= extracted-value 0) :fail
     :else
     (do
       ;; log this
-      (log/spy (str "Unable to determine whether >>>"
-                       result
-                       "<<< is a success or failure"))
+      (log/error
+       (format "Unable to determine whether >>>%s<<< is a success or failure"
+               result))
+
       :error))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
