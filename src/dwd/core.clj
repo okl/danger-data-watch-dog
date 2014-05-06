@@ -22,6 +22,9 @@ back whether they return 1 or 0"
 (defn- config-db [env-map conn-info]
   (assoc env-map :db-conn-info conn-info))
 
+(defn- config-success [env-map success-criteria]
+  (assoc env-map :success-criteria success-criteria))
+
 
 (defmacro deforder [id orders]
   `(def ~id (quote ~orders)))
@@ -40,7 +43,8 @@ back whether they return 1 or 0"
   ['check => :check]
   ;; Supporting Databases
   ['with-db => :with-db]
-  ['query => :query])
+  ['query => :query]
+  ['with-success-criteria => :with-success-criteria])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
@@ -52,10 +56,10 @@ back whether they return 1 or 0"
 
 
 
-(defrecord CheckResult [id desc val])
+(defrecord CheckResult [id desc val result])
 
-(defn- make-check-result [id desc val]
-  (CheckResult. id desc val))
+(defn- make-check-result [id desc val result]
+  (CheckResult. id desc val result))
 
 
 (defn- result->pass-fail
@@ -63,12 +67,17 @@ back whether they return 1 or 0"
 where the first vec contains the vec of column headers (of
 which there should only be one) and the second vec is an
 vec of values of which there should only be one"
-  [result]
-
+  [result success-fn]
   (let [extracted-value (first (second result))]
+    (println (str "extracted-value is " extracted-value))
+    (println (str "success-fn is " success-fn))
+    (println (str "this shoudl work " (success-fn 5)))
+    (println (str "this shoudl fail " (success-fn 1)))
+    (println (str "this should also work " (= 5 extracted-value)))
+    (println (str "so should this " (#(= 5 %) 5)))
     (cond
-     (= extracted-value 1) :pass
-     (= extracted-value 0) :fail
+     (success-fn extracted-value) :pass
+     (not (success-fn extracted-value)) :fail
     :else
     (do
       ;; log this
@@ -77,6 +86,7 @@ vec of values of which there should only be one"
                result))
 
       :error))))
+;))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## check
@@ -88,10 +98,16 @@ vec of values of which there should only be one"
                  (exec-interp expr new-env)
                  (catch java.lang.Exception e
                      (log/spy e)))
-        pass-fail (result->pass-fail result)
+        success-criteria (:success-criteria env)
+        success-fn (if (nil? success-criteria)
+                     #(= 5 %)
+                     success-criteria)
+        pass-fail (result->pass-fail result success-fn)
         check-result (make-check-result (or (:id new-env) :anon)
                                         (:desc new-env)
+                                        result
                                         pass-fail)]
+    (println env)
     (add-result! check-result )))
 
 
@@ -122,3 +138,21 @@ vec of values of which there should only be one"
         (str "No Database connection specified. Make sure this `query` block is "
              "inside of a `with-db` block")))
       (j/query (:db-conn-info env) [sql-query] :as-arrays? true))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## (with-success-crieria
+;; ex.
+;; ```
+;; (with-success-criteria #(= 299 %)
+;;  ...
+;;   '(check ...)+)
+;; ```
+;;
+(defmethod exec-interp :with-success-criteria [[_ success-criteria expr] env]
+  (let [success-criteria-fn (if (symbol? success-criteria)
+                              @(resolve success-criteria)
+                              (eval success-criteria))
+        new-env (config-success env success-criteria-fn)]
+  (println (str "success criteria is " success-criteria))
+  (exec-interp expr new-env)))

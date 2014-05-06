@@ -41,12 +41,12 @@
 ;; missing ids in a table we would want to join to,
 ;; etc.
 
-
 (deforder three-test
   (testing "if it's truth that"
     (check "this returns 5"
-           (with-db sql-lite-test-db
-             (query "select CASE WHEN count(*) > 3 THEN 1 ELSE 0 END AS a_test from person")))))
+           (with-success-criteria equal-five
+             (with-db sql-lite-test-db
+               (query "select CASE WHEN count(*) > 3 THEN 1 ELSE 0 END AS a_test from person")))))
 
 (deforder four-test
   (with-db sql-lite-test-db
@@ -60,29 +60,36 @@
   (testing "can we check"
     (with-db sql-lite-test-db
       (testing "if it's truth that"
-        (check "this returns 5"
-               (query "select 5 from person limit 1"))))))
+        (with-success-criteria #(= 5 %)
+          (check "this returns 5"
+                 (query "select 5 from person limit 1")))))))
 
 (deforder six-test
   (testing "can we check"
       (testing "if it's truth that"
         (check "this returns 5"
                (query "select 5 from person limit 1")))))
-(with-db
-  {:subprotocol "sqlite"
-   :subname "test/db/person"}
-  (group :yoda
-         (testing "A bunch of things"
-           (group :yesterday
-                  (check "If yoda was loaded yesterday" :total
-                         (query "as much"))
-                  (testing "If each server has it's data: "
-                    (check "sac-prod-web-01"
-                           (query "select count(*) from yoda.yoda where server_name = sac-prod-web-01"))
-                    (check "sac-prod-web-02"
-                           (query "select count(*) from yoda.yoda where server_name = sac-prod-web-02"))
-                    (check "sac-prod-web-03"
-                           (query "select count(*) from yoda.yoda where server_name = sac-prod-web-03")))))))
+
+(deforder several-test
+  (with-db sqlite-test-db
+    (group :yoda
+           (testing "A bunch of things"
+             (group :yesterday
+                    (check "If yoda was loaded yesterday" :total
+                           (query "as much"))
+                    (testing "If each server has it's data: "
+                      (check "sac-prod-web-01"
+                             (query "select count(*) from yoda.yoda where server_name = sac-prod-web-01"))
+                      (check "sac-prod-web-02"
+                             (query "select count(*) from yoda.yoda where server_name = sac-prod-web-02"))
+                      (check "sac-prod-web-03"
+                             (query "select count(*) from yoda.yoda where server_name = sac-prod-web-03"))))))))
+
+;; (deforder et-full-load-test
+;;   (with-db sqlite-test-db ; vertica
+;;     (group :exact_target
+;;            (testing "Full load stuff"
+;;              (check "Was there a full load of ET data"
 
 
 
