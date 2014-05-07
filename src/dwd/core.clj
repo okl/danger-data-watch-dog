@@ -69,12 +69,6 @@ which there should only be one) and the second vec is an
 vec of values of which there should only be one"
   [result success-fn]
   (let [extracted-value (first (second result))]
-    (println (str "extracted-value is " extracted-value))
-    (println (str "success-fn is " success-fn))
-    (println (str "this shoudl work " (success-fn 5)))
-    (println (str "this shoudl fail " (success-fn 1)))
-    (println (str "this should also work " (= 5 extracted-value)))
-    (println (str "so should this " (#(= 5 %) 5)))
     (cond
      (success-fn extracted-value) :pass
      (not (success-fn extracted-value)) :fail
@@ -107,7 +101,6 @@ vec of values of which there should only be one"
                                         (:desc new-env)
                                         result
                                         pass-fail)]
-    (println env)
     (add-result! check-result )))
 
 
@@ -154,5 +147,4 @@ vec of values of which there should only be one"
                               @(resolve success-criteria)
                               (eval success-criteria))
         new-env (config-success env success-criteria-fn)]
-  (println (str "success criteria is " success-criteria))
   (exec-interp expr new-env)))
