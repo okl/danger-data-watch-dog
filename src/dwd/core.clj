@@ -16,18 +16,55 @@ back whether they return 1 or 0"
   [& strs]
   (join " " strs))
 
+(defn- join-path
+  "Join with dots"
+  [ & strs]
+  (join "." strs))
+
 (defn- append-desc [env-map desc]
   (update-in env-map [:desc] #(joins % desc)))
+
+(defn- append-id [env-map id]
+  (update-in env-map [:id] #(join-path % id)))
 
 (defn- config-db [env-map conn-info]
   (assoc env-map :db-conn-info conn-info))
 
-(defn- config-success [env-map success-criteria]
-  (assoc env-map :success-criteria success-criteria))
-
-
 (defmacro deforder [id orders]
   `(def ~id (quote ~orders)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; # Check Results
+;;
+;; In order to have consistency in our return values, let's define what every check
+;; should return so we can layer on higher order logic
+
+(defprotocol CheckResult
+  (result [this])
+  (exceptions [this])
+  (execution-time [this])
+  (messages [this])
+  (data [this])
+  (description [this]))
+
+
+(defn make-check-result [config]
+  (reify
+    CheckResult
+    (result [_]
+      (:result config))
+    (exceptions [_]
+      (:exceptions config))
+    (execution-time [_]
+      (:time config))
+    (messages [_]
+      (:messages config))
+    (data [_]
+      (:data config))
+    (description [_]
+      (:desc config))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; # The language
@@ -40,11 +77,14 @@ back whether they return 1 or 0"
 
 (definterpreter exec-interp [env]
   ['testing => :testing]
-  ['check => :check]
+  ['check ¯=> :check]
   ;; Supporting Databases
   ['with-db => :with-db]
   ['query => :query]
-  ['with-success-criteria => :with-success-criteria])
+  ;; Predicates
+  ['= => :=])
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
@@ -55,20 +95,14 @@ back whether they return 1 or 0"
     (map #(exec-interp % new-env) exprs)))
 
 
-
-(defrecord CheckResult [id desc val result])
-
-(defn- make-check-result [id desc val result]
-  (CheckResult. id desc val result))
-
-
 (defn- result->pass-fail
   "It's assumed that an vec of vecs is returned
 where the first vec contains the vec of column headers (of
 which there should only be one) and the second vec is an
 vec of values of which there should only be one"
-  [result success-fn]
-  (let [extracted-value (first (second result))]
+  [result]
+  (let [extracted-value (first (second result))
+        success-fn #(= 1 %)]
     (cond
      (success-fn extracted-value) :pass
      (not (success-fn extracted-value)) :fail
@@ -80,28 +114,31 @@ vec of values of which there should only be one"
                result))
 
       :error))))
-;))
+
+
+
+ (defn- process-check-args [args]
+  (if (= (count args) 3)
+    args
+    (cons :anon args)))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## check
 ;; ex. `'(check DESC EXPR)`
 ;;
-(defmethod exec-interp :check [[_ desc expr] env]
-  (let [new-env (append-desc env desc)
+;; this is the configuration of a check
+
+;; this is the execution of a check
+(defmethod exec-interp :check [[_ & args] env]
+  (let [[id desc expr] (process-check-args args)
+        new-env (append-desc env desc)
         result (try
                  (exec-interp expr new-env)
-                 (catch java.lang.Exception e
-                     (log/spy e)))
-        success-criteria (:success-criteria env)
-        success-fn (if (nil? success-criteria)
-                     #(= 5 %)
-                     success-criteria)
-        pass-fail (result->pass-fail result success-fn)
-        check-result (make-check-result (or (:id new-env) :anon)
-                                        (:desc new-env)
-                                        result
-                                        pass-fail)]
-    (add-result! check-result )))
+                 (catch Exception e
+                     (log/spy e)))]
+    (add-result! result)))
 
 
 (defmethod exec-interp :with-db [[_ conn-info-or-sym expr] env]
@@ -112,6 +149,17 @@ vec of values of which there should only be one"
     (exec-interp expr new-env)))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## =
+;; ex. `'(= =expr1 =expr2 ...)`
+;; execution of a predicate
+ (defmethod exec-interp := [[_ & =exprs] env]
+   (let [results (map deref (map resolve =exprs))
+         result (apply = results)
+         result-map {:result (not result)
+                     :data results
+                     :desc (:desc env)}]
+     (make-check-result result-map)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -132,19 +180,3 @@ vec of values of which there should only be one"
              "inside of a `with-db` block")))
       (j/query (:db-conn-info env) [sql-query] :as-arrays? true))))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ## (with-success-crieria
-;; ex.
-;; ```
-;; (with-success-criteria #(= 299 %)
-;;  ...
-;;   '(check ...)+)
-;; ```
-;;
-(defmethod exec-interp :with-success-criteria [[_ success-criteria expr] env]
-  (let [success-criteria-fn (if (symbol? success-criteria)
-                              @(resolve success-criteria)
-                              (eval success-criteria))
-        new-env (config-success env success-criteria-fn)]
-  (exec-interp expr new-env)))
