@@ -39,6 +39,12 @@
             :subname "vertica"
             :classname "com.vertica.driver.VerticaDriver"}))))
 
+(deftest test-define-config-followed-by-lookup
+  (testing "That something defined can be used later"
+    (is (= (config-interp '(define-config my-conf {:blah "blah"}
+                             (lookup-config my-conf)) {})
+           "Using configuration with id my-conf as {:blah \"blah\"}\n{:blah \"blah\"}"))))
+
 (def et-db-test
   '(testing "that the ET database loads work successfully"
     (with-db (lookup-config vertica-config)

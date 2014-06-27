@@ -86,9 +86,9 @@
 ;; This defines a configuration that can both be used later, and
 ;; at the present time
 (defmethod config-interp :define-config [[_ id config-map & exprs] env]
-  (let [new-env (defconfig id config-map)]
+  (let [new-env (merge env {:config-registry (defconfig id config-map)})]
     (str "Using configuration with id " id " as " config-map "\n"
-         (join "\n" #(config-interp % new-env)))))
+         (join "\n" (map #(config-interp % new-env) exprs)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; databases
