@@ -112,3 +112,17 @@
   (testing "Verifying ET file interp works as expected"
     (is (= (config-interp et-test {:config-registry (config-registry)})
            "Performing the following checks to verify ensuring that ET uploads are successful:\ncheck (with id local-et-nfs-check) file is present locally that file ///path/to/file/{yyyy}/{MM}/{dd}/file.txt exists\nusing s3 defined by {:secret-key \"blah\", :bucket \"blah\", :access-key \"blah\"}\ncheck (with id :anon) Has a new file been uploaded that file s3://path/to/file/{yyyy}/{MM}/{dd}/file.txt exists\ncheck (with id :anon) is of a minimum size that (file-size \"s3://path/to/file/{yyyy}/{MM}/{dd}/file.txt\" 9123214) is greater than \ncheck (with id :anon) has been updated recently that (file-mtime \"s3://path/to/file/{yyyy}{MM}/{dd}/file.txt\") is greater than (date yesterday)\ncheck (with id :anon) random command that 0, (execute-command-rc \"s3cmd do something we haven't thought of\") are equal."))))
+
+(def ftp
+  '(testing "ensuring file made it on ftp"
+     (with-ftp {:hostname "myhost"
+                :port "23897"
+                :username "esayleisawsome"
+                :password "youheardme"}
+       (check "file is present"
+              (file-present? "/path/to/esayle.txt")))))
+
+(deftest ftp-interp
+  (testing "Validating ftp syntax"
+    (is (= (config-interp ftp {})
+           "Performing the following checks to verify ensuring file made it on ftp:\nusing ftp defined by {:hostname \"myhost\", :port \"23897\", :username \"esayleisawsome\", :password \"youheardme\"}\ncheck (with id :anon) file is present that file /path/to/esayle.txt exists"))))

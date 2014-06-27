@@ -33,6 +33,7 @@
   ['with-db => :with-db]
   ;; Supporting Files
   ['with-s3 => :with-s3]
+  ['with-ftp => :with-ftp]
   ;; Predicates
   ['= => :=]
   ['>= => :>=]
@@ -119,6 +120,15 @@
 (defmethod config-interp :with-s3 [[_ s3-config & exprs] env]
   (str "using s3 defined by " (config-interp s3-config env ) "\n"
        (join "\n" (map #(config-interp % env) exprs))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## with-ftp
+;; ex. `'(with-ftp ftp-config (file-present? /path/to/file)`
+;;
+(defmethod config-interp :with-ftp [[_ ftp-config & exprs] env]
+  (str "using ftp defined by " (config-interp ftp-config env ) "\n"
+       (join "\n" (map #(config-interp % env) exprs))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; predicates
