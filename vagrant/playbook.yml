@@ -1,0 +1,54 @@
+---
+
+- hosts: all
+  sudo: true
+  tasks:
+
+    - name: install epel so I can get needed libraries
+      yum: name=http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+           state=present
+
+    - name: install icinga dependencies
+      yum: name=php,php-cli,php-pear,php-xmlrpc,php-xsl,php-pdo,php-soap,php-gd,php-ldap,php-mysql,mysql-server,mysql-devel
+           state=present
+
+    - name: install repoforge to install icinga
+      yum: name=http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
+           state=present
+
+    - name: install icinga
+      yum: name=icinga-web
+           state=present
+
+    - name: install python-devel and pip for mysql-python later
+      yum: name=python-devel,python-pip
+           state=present
+
+    - name: install python mysqldb module for mysql setup
+      pip: name=mysql-python
+           state=present
+
+    - name: stop iptables for external access to ports
+      service: name=iptables
+               state=stopped
+
+    - name: start mysql
+      service: name=mysqld
+               state=started
+
+    - name: start httpd
+      service: name=httpd
+               state=started
+
+    - name: create icinga database
+      mysql_db: name=icinga_web
+
+    - name: create icinga_web mysql user
+      mysql_user: user=icinga_web
+                  password=icinga_web
+                  state=present
+                  priv=icinga_web.*:all
+
+    - name: load the icinga schema
+      shell: mysql -u root icinga_web < /usr/share/doc/icinga-web-1.7.2/schema/mysql.sql && touch /etc/icinga-web/db_loaded.done
+             creates=/etc/icinga-web-db_loaded.done
