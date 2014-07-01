@@ -7,3 +7,14 @@
 (def file-present-test
   '(file-present? "project.clj"))
 
+(def file-not-present-test
+  '(file-present? "alskdjflksdjflsdkjf.txt"))
+
+(deftest file-present
+  (testing "positive result"
+    (is (= (result (exec-interp file-present-test {}))
+           true)))
+  (testing "negative result"
+    (is (= (result (exec-interp file-not-present-test {}))
+           false))))
+    
