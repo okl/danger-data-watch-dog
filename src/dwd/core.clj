@@ -5,7 +5,9 @@ back whether they return 1 or 0"
    :date "Jan 20, 2014"}
   (:require [clojure.string :refer [join]]
             [clojure.java.jdbc :as j]
-            [clojure.tools.logging :as log])
+            [clojure.java.io :refer [as-file]]
+            [clojure.tools.logging :as log]
+            [clojure.java.shell :refer [sh]])
   (:require [diesel.core :refer :all]
             [roxxi.utils.print :refer :all]))
 
@@ -43,7 +45,8 @@ back whether they return 1 or 0"
 (defprotocol CheckResult
   (result [this])
   (exceptions [this])
-  (execution-time [this])
+  (time-executed [this])
+  (execution-duration [this])
   (messages [this])
   (data [this])
   (description [this]))
@@ -56,8 +59,10 @@ back whether they return 1 or 0"
       (:result config))
     (exceptions [_]
       (:exceptions config))
-    (execution-time [_]
+    (time-executed [_]
       (:time config))
+    (execution_duration [_]
+      (:duration config))
     (messages [_]
       (:messages config))
     (data [_]
@@ -155,6 +160,36 @@ vec of values of which there should only be one"
                      (log/spy e)))]
     (add-result! result)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## lookup-config
+;; ex `'(with-s3 (lookup my-s3-config)` ... )
+;;
+;; This looks up a configuration defined using defconfig or define-config
+(defmethod exec-interp :lookup-config [[_ config-def] env]
+  (let [registry (get env :config-registry)
+        config (get registry config-def)]
+    (if (nil? config)
+      (log/errorf "Unknown configuration %s specified. Available: %s"
+                  config-def (keys registry))
+      config)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## define-config
+;; ex ```
+;;     '(with-s3 (define-config my-s3-config {:access-key "blah"
+;;                                            :secret-key "blah"
+;;                                            :bucket "blah"}
+;;
+;; This defines a configuration that can both be used later, and
+;; at the present time
+(defmethod exec-interp :define-config [[_ id config-map & exprs] env]
+  (let [new-env (merge env {:config-registry (defconfig id config-map)})]
+    (str "Using configuration with id " id " as " config-map "\n"
+         (join "\n" (map #(exec-interp % new-env) exprs)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; databases
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmethod exec-interp :with-db [[_ conn-info-or-sym expr] env]
   (let [conn-info (if (symbol? conn-info-or-sym)
@@ -163,6 +198,30 @@ vec of values of which there should only be one"
         new-env (config-db env conn-info)]
     (exec-interp expr new-env)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; files
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## with-s3
+;; ex. `'(with-s3 s3-config (file-present? /path/to/file)`
+;;
+(defmethod exec-interp :with-s3 [[_ s3-config & exprs] env]
+  (let [config (exec-interp s3-config env)
+        new-env (merge env {:location "s3" :s3-config config})]
+    (map #(exec-interp % new-env) exprs)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## with-ftp
+;; ex. `'(with-ftp ftp-config (file-present? /path/to/file)`
+;;
+(defmethod exec-interp :with-ftp [[_ ftp-config & exprs] env]
+  (str "using ftp defined by " (exec-interp ftp-config env ) "\n"
+       (join "\n" (map #(exec-interp % env) exprs))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; predicates
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## =
@@ -176,6 +235,60 @@ vec of values of which there should only be one"
                      :desc (:desc env)}]
      (make-check-result result-map)))
 
+
+;; cheater cheater pumpkin eater
+(defn local-file-present? [expr env]
+  (make-check-result
+   { :result (.exists (as-file expr))
+     :data expr
+     :desc (get env :desc)}))
+
+(defn s3-file-present? [expr env]
+  (let [s3-config (:s3-config env)
+        secret-key (:secret-key s3-config)
+        access-key (:access-key s3-config)]
+    (if (or (empty? secret-key)
+            (empty? access-key))
+      ; bad configuration
+      (make-check-result
+       { :result :error
+         :data expr
+        :desc (get env :desc)
+        :messages "Need secret-key and access-key for s3 config"})
+      ; run the s3cmd to see if it's there
+      (let [sh-result (sh "/Users/esayle/s3cmd-1.5.0-rc1/s3cmd"
+                      (format "--access_key=%s" access-key)
+                      (format "--secret_key=%s" secret-key)
+                      "ls"
+                      expr)
+            result (if (and (= 0 (:exit sh-result))
+                            (not (empty? (:out sh-result))))
+                     true
+                     false)
+            messages (:out sh-result)
+            exceptions (:err sh-result)
+            desc (get env :desc)]
+        (make-check-result
+         {:result result
+          :data expr
+          :desc desc
+          :messages messages
+          :exceptions exceptions})))))
+
+(defn ftp-file-present? [expr env]
+  (println "Looking in ftp for " expr))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## file-present?
+;; `'(file-present? /path/to/file.txt)`
+;;
+(defmethod exec-interp :file-present? [[_ file-expr] env]
+  (let [location (:location env)]
+    (case location
+      nil   (local-file-present? file-expr env)
+      "s3"  (s3-file-present? file-expr env)
+      "ftp" (ftp-file-present? file-expr env))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## query
@@ -194,3 +307,4 @@ vec of values of which there should only be one"
         (str "No Database connection specified. Make sure this `query` block is "
              "inside of a `with-db` block")))
       (j/query (:db-conn-info env) [sql-query] :as-arrays? true))))
+
