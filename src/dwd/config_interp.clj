@@ -6,19 +6,9 @@
             [clojure.java.jdbc :as j]
             [clojure.tools.logging :as log])
   (:require [diesel.core :refer :all]
-            [roxxi.utils.print :refer :all]))
-
-
-;; holds configuration symbols
-(def config-sym-tab (atom {}))
-
-(defn defconfig [k v]
-  (when (contains? @config-sym-tab k)
-    (log/warnf "Attempting to overwrite already defined function %s" k))
-  (swap! config-sym-tab #(assoc % k v)))
-
-(defn config-registry []
-  @config-sym-tab)
+            [roxxi.utils.print :refer :all])
+  (:require [dwd.core :refer [config-registry
+                              defconfig]]))
 
 (defn- append-desc [env-map desc]
   (update-in env-map [:desc] #(join % desc)))

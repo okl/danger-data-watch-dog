@@ -1,8 +1,9 @@
 (ns dwd.config-interp-test
   (:use clojure.test
         dwd.config-interp)
-  (:require [clojure.java.jdbc :as j]
-            [clojure.string :refer [join]]))
+  (:require [clojure.string :refer [join]])
+  (:require [dwd.core :refer [defconfig
+                              config-registry]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; setup
@@ -31,16 +32,14 @@
              "check (with id my-id) hello that 5, 6 are equal.")))))
 
 
-(deftest test-lookup-config
+(deftest test-config
   (testing "Verifying that lookup-config returns the original"
     (is (= (config-interp '(lookup-config vertica-config)
                           {:config-registry (config-registry)})
            {:subprotocol "vertica"
             :subname "vertica"
-            :classname "com.vertica.driver.VerticaDriver"}))))
-
-(deftest test-define-config-followed-by-lookup
-  (testing "That something defined can be used later"
+            :classname "com.vertica.driver.VerticaDriver"})))
+  (testing "That something can be looked up later"
     (is (= (config-interp '(define-config my-conf {:blah "blah"}
                              (lookup-config my-conf)) {})
            "Using configuration with id my-conf as {:blah \"blah\"}\n{:blah \"blah\"}"))))

@@ -65,6 +65,17 @@ back whether they return 1 or 0"
     (description [_]
       (:desc config))))
 
+;; holds configuration symbols
+(def config-sym-tab (atom {}))
+
+(defn defconfig [k v]
+  (when (contains? @config-sym-tab k)
+    (log/warnf "Attempting to overwrite already defined function %s" k))
+  (swap! config-sym-tab #(assoc % k v)))
+
+(defn config-registry []
+  @config-sym-tab)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; # The language
@@ -77,14 +88,18 @@ back whether they return 1 or 0"
 
 (definterpreter exec-interp [env]
   ['testing => :testing]
-  ['check ¯=> :check]
+  ['check => :check]
+  ['lookup-config => :lookup-config]
+  ['define-config => :define-config]
   ;; Supporting Databases
   ['with-db => :with-db]
-  ['query => :query]
+  ;; Supporting Files
+  ['with-s3 => :with-s3]
+  ['with-ftp => :with-ftp]
   ;; Predicates
-  ['= => :=])
-
-
+  ['= => :=]
+  ['>= => :>=]
+  ['file-present? => :file-present?])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
@@ -179,4 +194,3 @@ vec of values of which there should only be one"
         (str "No Database connection specified. Make sure this `query` block is "
              "inside of a `with-db` block")))
       (j/query (:db-conn-info env) [sql-query] :as-arrays? true))))
-
