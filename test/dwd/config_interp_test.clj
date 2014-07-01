@@ -1,8 +1,8 @@
 (ns dwd.config-interp-test
-  (:use clojure.test
-        dwd.config-interp)
-  (:require [clojure.string :refer [join]])
-  (:require [dwd.core :refer [defconfig
+  (:require [clojure.test :refer :all]
+            [clojure.string :refer [join]])
+  (:require [dwd.config-interp :refer :all]
+            [dwd.core :refer [defconfig
                               config-registry]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
