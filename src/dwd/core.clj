@@ -253,7 +253,7 @@ vec of values of which there should only be one"
       (make-check-result
        { :result :error
          :data expr
-        :desc (get env :desc)
+        :desc (:desc env)
         :messages "Need secret-key and access-key for s3 config"})
       ; run the s3cmd to see if it's there
       (let [sh-result (sh "/Users/esayle/s3cmd-1.5.0-rc1/s3cmd"
@@ -262,7 +262,8 @@ vec of values of which there should only be one"
                       "ls"
                       expr)
             result (if (and (= 0 (:exit sh-result))
-                            (not (empty? (:out sh-result))))
+                            (not (empty? (:out sh-result)))
+                            (> (.indexOf (:out sh-result) expr) -1))
                      true
                      false)
             messages (:out sh-result)
