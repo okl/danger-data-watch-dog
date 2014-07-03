@@ -5,11 +5,13 @@ back whether they return 1 or 0"
    :date "Jan 20, 2014"}
   (:require [clojure.string :refer [join]]
             [clojure.java.jdbc :as j]
-            [clojure.java.io :refer [as-file]]
             [clojure.tools.logging :as log]
             [clojure.java.shell :refer [sh]])
   (:require [diesel.core :refer :all]
-            [roxxi.utils.print :refer :all]))
+            [roxxi.utils.print :refer :all])
+  (:require [dwd.endpoint.file :refer :all]
+            [dwd.check-result :refer [make-check-result]]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; helpers
@@ -34,41 +36,6 @@ back whether they return 1 or 0"
 
 (defmacro deforder [id orders]
   `(def ~id (quote ~orders)))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; # Check Results
-;;
-;; In order to have consistency in our return values, let's define what every check
-;; should return so we can layer on higher order logic
-
-(defprotocol CheckResult
-  (result [this])
-  (exceptions [this])
-  (time-executed [this])
-  (execution-duration [this])
-  (messages [this])
-  (data [this])
-  (description [this]))
-
-
-(defn make-check-result [config]
-  (reify
-    CheckResult
-    (result [_]
-      (:result config))
-    (exceptions [_]
-      (:exceptions config))
-    (time-executed [_]
-      (:time config))
-    (execution_duration [_]
-      (:duration config))
-    (messages [_]
-      (:messages config))
-    (data [_]
-      (:data config))
-    (description [_]
-      (:desc config))))
 
 ;; holds configuration symbols
 (def config-sym-tab (atom {}))
@@ -234,51 +201,6 @@ vec of values of which there should only be one"
                      :data results
                      :desc (:desc env)}]
      (make-check-result result-map)))
-
-
-;; cheater cheater pumpkin eater
-(defn local-file-present? [expr env]
-  (make-check-result
-   { :result (.exists (as-file expr))
-     :data expr
-     :desc (get env :desc)}))
-
-(defn s3-file-present? [expr env]
-  (let [s3-config (:s3-config env)
-        secret-key (:secret-key s3-config)
-        access-key (:access-key s3-config)]
-    (if (or (empty? secret-key)
-            (empty? access-key))
-      ; bad configuration
-      (make-check-result
-       { :result :error
-         :data expr
-        :desc (:desc env)
-        :messages "Need secret-key and access-key for s3 config"})
-      ; run the s3cmd to see if it's there
-      (let [sh-result (sh "/Users/esayle/s3cmd-1.5.0-rc1/s3cmd"
-                      (format "--access_key=%s" access-key)
-                      (format "--secret_key=%s" secret-key)
-                      "ls"
-                      expr)
-            result (if (and (= 0 (:exit sh-result))
-                            (not (empty? (:out sh-result)))
-                            (> (.indexOf (:out sh-result) expr) -1))
-                     true
-                     false)
-            messages (:out sh-result)
-            exceptions (:err sh-result)
-            desc (get env :desc)]
-        (make-check-result
-         {:result result
-          :data expr
-          :desc desc
-          :messages messages
-          :exceptions exceptions})))))
-
-(defn ftp-file-present? [expr env]
-  (println "Looking in ftp for " expr))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## file-present?

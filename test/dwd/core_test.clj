@@ -2,7 +2,8 @@
  (:require [clojure.test :refer :all]
             [clojure.java.jdbc :as j]
             [clojure.string :refer [join]])
-  (:require [dwd.core :refer :all]))
+  (:require [dwd.core :refer :all]
+            [dwd.check-result :refer :all]))
 
 (def file-present-test
   '(file-present? "project.clj"))
@@ -17,4 +18,3 @@
   (testing "negative result"
     (is (= (result (exec-interp file-not-present-test {}))
            false))))
-    
