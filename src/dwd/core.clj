@@ -10,7 +10,7 @@ back whether they return 1 or 0"
   (:require [diesel.core :refer :all]
             [roxxi.utils.print :refer :all])
   (:require [dwd.endpoint.file :refer :all]
-            [dwd.check-result :refer [make-check-result]]))
+            [dwd.check-result :refer [make-check-result CheckResult]]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -42,7 +42,7 @@ back whether they return 1 or 0"
 
 (defn defconfig [k v]
   (when (contains? @config-sym-tab k)
-    (log/warnf "Attempting to overwrite already defined function %s" k))
+    (log/warnf "Attempting to overwrite already defined configuration %s" k))
   (swap! config-sym-tab #(assoc % k v)))
 
 (defn config-registry []
@@ -71,7 +71,9 @@ back whether they return 1 or 0"
   ;; Predicates
   ['= => :=]
   ['>= => :>=]
-  ['file-present? => :file-present?])
+  ['file-present? => :file-present?]
+  ;; Generic operations
+  ['exec-op => :exec-op])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
@@ -108,9 +110,6 @@ vec of values of which there should only be one"
   (if (= (count args) 3)
     args
     (cons :anon args)))
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## check
 ;; ex. `'(check DESC EXPR)`
@@ -195,13 +194,19 @@ vec of values of which there should only be one"
 ;; ## =
 ;; ex. `'(= =expr1 =expr2 ...)`
 ;; execution of a predicate
- (defmethod exec-interp := [[_ & =exprs] env]
-   (let [results (map deref (map resolve =exprs))
-         result (apply = results)
-         result-map {:result (not result)
-                     :data results
-                     :desc (:desc env)}]
-     (make-check-result result-map)))
+(defmethod exec-interp := [[_ & =exprs] env]
+  (let [results (map #(if (or (symbol? %) (seq? %))
+                        (exec-interp % env)
+                        %)
+                     =exprs)
+        result (apply = (map #(if (satisfies? CheckResult %)
+                                (.result %)
+                                %)
+                             results))
+        result-map {:result result
+                    :data results
+                    :desc (:desc env)}]
+    (make-check-result result-map)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## file-present?
@@ -232,3 +237,17 @@ vec of values of which there should only be one"
              "inside of a `with-db` block")))
       (j/query (:db-conn-info env) [sql-query] :as-arrays? true))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Generic operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod exec-interp :exec-op [[_ op-name & args] env]
+  (let [op-registry (:op-registry env)
+        op (get op-registry op-name)]
+    (if (nil? op)
+      (make-check-result
+       {:result :error
+        :exception (str "Unable to find operator " op-name)
+        :data args})
+      (apply op args))))
