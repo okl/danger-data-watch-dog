@@ -248,6 +248,6 @@ vec of values of which there should only be one"
     (if (nil? op)
       (make-check-result
        {:result :error
-        :exception (str "Unable to find operator " op-name)
+        :exceptions (str "Unable to find operator " op-name)
         :data args})
       (apply op args))))

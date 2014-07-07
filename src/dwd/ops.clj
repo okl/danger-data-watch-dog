@@ -33,10 +33,10 @@
 ;; shell-result-code
 ;; ex. `(exec-op shell-result-code "ls" "/tmp/test.txt")
 ;; Runs a command, result is the exit code of the command
-(defn- shell-result-code [ & args]
+(defn- shell-exit-code [ & args]
   (let [shell-output (apply run-shell-command args)
         result (:exit shell-output)
-        messages (:out shell-output)
+        messages (trim (:out shell-output))
         exceptions (:err shell-output)]
     (make-check-result
      {:result result
@@ -60,5 +60,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Set up registry
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(opconfig 'shell-result-code shell-result-code)
+(opconfig 'shell-exit-code shell-exit-code)
 (opconfig 'shell-output shell-output)

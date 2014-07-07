@@ -42,12 +42,12 @@
 (def valid-ls-test
   '(testing "Can run ls on my own file"
      (check "file exists"
-            (= (exec-op shell-exit-code "ls" "core_test.clj")
+            (= (exec-op shell-exit-code "ls" "project.clj")
                0))))
 
 (deftest valid-ls
   (let [check (exec-interp valid-ls-test {:op-registry (op-registry)})]
     (testing "expected return code"
-      (= (result (last (last check))) true))
+      (is (= (result (last (last check))) true)))
     (testing "output is expected"
-      (= (messages (last (last check))) "core_test.clj"))))
+      (is (= (messages (first (data (last (last check))))) "project.clj")))))
