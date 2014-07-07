@@ -65,6 +65,7 @@ back whether they return 1 or 0"
   ['define-config => :define-config]
   ;; Supporting Databases
   ['with-db => :with-db]
+  ['query => :query]
   ;; Supporting Files
   ['with-s3 => :with-s3]
   ['with-ftp => :with-ftp]
@@ -235,8 +236,12 @@ vec of values of which there should only be one"
        (RuntimeException.
         (str "No Database connection specified. Make sure this `query` block is "
              "inside of a `with-db` block")))
-      (j/query (:db-conn-info env) [sql-query] :as-arrays? true))))
-
+      (let [result-set (j/query (:db-conn-info env) [sql-query] :as-arrays? true)
+            result (first (second result-set))]
+        (make-check-result
+         {:result result
+          :data result-set
+          :messages sql-query})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generic operations
