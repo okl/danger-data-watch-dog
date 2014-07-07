@@ -183,8 +183,9 @@ vec of values of which there should only be one"
 ;; ex. `'(with-ftp ftp-config (file-present? /path/to/file)`
 ;;
 (defmethod exec-interp :with-ftp [[_ ftp-config & exprs] env]
-  (str "using ftp defined by " (exec-interp ftp-config env ) "\n"
-       (join "\n" (map #(exec-interp % env) exprs))))
+  (let [config (exec-interp ftp-config env)
+        new-env (merge env {:location "ftp" :ftp-config config})]
+    (map #(exec-interp % new-env) exprs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; predicates
