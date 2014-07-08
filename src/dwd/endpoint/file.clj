@@ -56,7 +56,8 @@
         port (if (not (nil? (:port config)))
                (:port config)
                21)
-        ;; EEE: /file.txt is the same as file.txt, but /dir/file.txt is different
+        ;; EEE: /file.txt is the same as file.txt, but
+        ;; /dir/file.txt is different than dir/file.txt
         filename (last (split expr #"/"))
         path (join "/" (butlast (split expr #"/")))]
     (if (or (nil? hostname)
@@ -122,10 +123,7 @@
 
 (defn ftp-file-present? [expr env]
   (let [config (:ftp-config env)
-        ; set to false if not set at all
-        ssl (if (not (nil? (:ssl config)))
-                     (:ssl config)
-                     true)]
+        ssl (:ssl config)] ; false if not set at all
     (if ssl
       (sftp-file-present? expr env)
       (real-ftp-file-present? expr env))))
