@@ -1,6 +1,5 @@
 (ns dwd.core
-  "Creating a small DSL to run queries and report
-back whether they return 1 or 0"
+  "How can we check current state of things"
   {:author "Alex Bahouth"
    :date "Jan 20, 2014"}
   (:require [clojure.string :refer [join]]
