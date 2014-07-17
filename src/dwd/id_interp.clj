@@ -44,15 +44,17 @@
 (defmethod id-interp :testing [[_ desc & args ] env]
   (create-sublist env args 'testing desc))
 
-(defn- process-check-args [args]
-  (if (= (count args) 3)
-    args
-    (cons (gensym "check_") args)))
+(defn- process-check-args [args id-prefix]
+  (let [gensym-prefix (str id-prefix "check_")]
+        (if (= (count args) 3)
+          args
+          (cons (gensym gensym-prefix) args))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; check
 ;; blah blah
 (defmethod id-interp :check [[_ & args] env]
-  (let [[id desc expr] (process-check-args args)]
+  (let [id-prefix (:id-prefix env)
+        [id desc expr] (process-check-args args id-prefix)]
     {id (list 'check id desc expr)}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -75,14 +77,16 @@
 (defmethod id-interp :with-ftp [[_ ftp-config & exprs] env]
   (create-sublist env exprs 'with-ftp ftp-config))
 
-(defn- process-group-args [args]
-  (if (= (count args) 3)
-    args
-    (cons (gensym "group_") args)))
+(defn- process-group-args [args id-prefix]
+  (let [gensym-prefix (str id-prefix "group_")]
+    (if (= (count args) 3)
+      args
+      (cons (gensym "group_") args))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; group
 (defmethod id-interp :group [[_ & args] env]
-  (let [[id desc checks] (process-group-args args)
+  (let [id-prefix (:id-prefix env)
+        [id desc checks] (process-group-args args id-prefix)
         check-defs (filter seq? checks)
         group-def {id (list 'group id desc checks)}]
     (merge group-def (apply merge (map #(id-interp % {}) check-defs)))))
