@@ -53,9 +53,9 @@
         hostname (:hostname config)
         username (:username config)
         password (:password config)
-        port (if (not (nil? (:port config)))
-               (:port config)
-               21)
+        port (if (nil? (:port config))
+               21
+               (:port config))
         ;; EEE: /file.txt is the same as file.txt, but
         ;; /dir/file.txt is different than dir/file.txt
         filename (last (split expr #"/"))
