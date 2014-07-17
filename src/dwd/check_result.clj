@@ -27,7 +27,7 @@
       (:exceptions config))
     (time-executed [_]
       (:time config))
-    (execution_duration [_]
+    (execution-duration [_]
       (:duration config))
     (messages [_]
       (:messages config))
