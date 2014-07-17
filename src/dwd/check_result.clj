@@ -18,7 +18,6 @@
   (data [this])
   (description [this]))
 
-
 (defn make-check-result [config]
   (reify
     CheckResult
@@ -35,4 +34,6 @@
     (data [_]
       (:data config))
     (description [_]
-      (:desc config))))
+      (:desc config))
+    (toString [_]
+      (str config))))
