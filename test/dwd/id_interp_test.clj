@@ -70,13 +70,13 @@
             {'id '(group id "mygroup" [someid])})))
   (testing "id-group-check-def"
     (is (= (id-interp '(group groupid "mygroup" [(check checkid "mycheck" (= 1 1))]) {})
-           {'groupid '(group groupid "mygroup" [(check checkid "mycheck" (= 1 1))])
+           {'groupid '(group groupid "mygroup" [checkid])
             'checkid '(check checkid "mycheck" (= 1 1))})))
   (testing "id-group-check-def-and-id"
     (let [check-expr '(check checkdef "mycheck" (= 1 1))
           group-expr (list 'group 'groupid "mygroup" [check-expr 'othercheck])]
       (is (= (id-interp group-expr {})
-             {'groupid group-expr
+             {'groupid '(group groupid "mygroup" [othercheck checkdef])
               'checkdef check-expr})))))
 
 (deftest test-mixed
@@ -84,5 +84,5 @@
         group-expr (list 'group 'groupdef "mygruop" ['something check-expr 'else])
         testing-expr (list 'testing "somestring" group-expr)]
     (is (= (id-interp testing-expr {})
-        {'groupdef testing-expr
+        {'groupdef '(testing "somestring" (group groupdef "mygruop" [something else checkdef]))
          'checkdef '(testing "somestring" (check checkdef "mycheck" (= 1 1)))}))))
