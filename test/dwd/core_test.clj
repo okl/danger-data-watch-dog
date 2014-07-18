@@ -28,26 +28,3 @@
 (deftest check
   (testing "digit equality"
     (is (= (result (last (exec-interp check-test {}))) true))))
-
-(def valid-echo-test
-  '(check "3 = 3"
-          (= (exec-op shell-output "echo" "3")
-             "3")))
-
-(deftest valid-echo
-  (testing "expected output"
-    (is (= (result (last (exec-interp valid-echo-test {:op-registry (op-registry)})))
-           true))))
-
-(def valid-ls-test
-  '(testing "Can run ls on my own file"
-     (check "file exists"
-            (= (exec-op shell-exit-code "ls" "project.clj")
-               0))))
-
-(deftest valid-ls
-  (let [check (exec-interp valid-ls-test {:op-registry (op-registry)})]
-    (testing "expected return code"
-      (is (= (result (last (last check))) true)))
-    (testing "output is expected"
-      (is (= (messages (first (data (last (last check))))) "project.clj")))))
