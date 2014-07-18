@@ -32,7 +32,8 @@
 
 (defn- exec-check [_ & checks-to-execute]
   (let [checks (load-check-configs base-check-file)
-        results (map #(run-single-check checks %) checks-to-execute)
+        results (apply flatten
+                       (map #(run-single-check checks %) checks-to-execute))
         final-result (every? true? (map result results)) ]
     (doseq [result results]
       (println "result is " result))
