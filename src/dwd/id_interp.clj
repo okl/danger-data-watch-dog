@@ -88,5 +88,8 @@
   (let [id-prefix (:id-prefix env)
         [id desc checks] (process-group-args args id-prefix)
         check-defs (filter seq? checks)
-        group-def {id (list 'group id desc checks)}]
-    (merge group-def (apply merge (map #(id-interp % {}) check-defs)))))
+        existing-ids (filter #(not (seq? %)) checks)
+        check-interps (apply merge (map #(id-interp % {}) check-defs))
+        new-ids (keys check-interps)
+        group-def {id (list 'group id desc (concat existing-ids new-ids))}]
+    (merge group-def check-interps)))
