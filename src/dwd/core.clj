@@ -9,7 +9,7 @@
   (:require [diesel.core :refer :all]
             [roxxi.utils.print :refer :all])
   (:require [dwd.endpoint.file :refer :all]
-            [dwd.check-result :refer [make-check-result CheckResult]]))
+            [dwd.check-result :refer :all]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -51,12 +51,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; # The language
 
-;; TODO make better
-(def results (atom []))
-
-(defn- add-result! [val]
-  (swap! results #(conj % val)))
-
 (definterpreter exec-interp [env]
   ['testing => :testing]
   ['check => :check]
@@ -72,8 +66,8 @@
   ['= => :=]
   ['>= => :>=]
   ['file-present? => :file-present?]
-  ;; Generic operations
-  ['exec-op => :exec-op])
+  ;; groups
+  ['group => :group])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
@@ -124,7 +118,7 @@ vec of values of which there should only be one"
                  (exec-interp expr new-env)
                  (catch Exception e
                      (log/spy e)))]
-    (add-result! result)))
+    result))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## lookup-config
@@ -242,16 +236,27 @@ vec of values of which there should only be one"
           :data result-set
           :messages sql-query})))))
 
+(defn- process-group-args [args]
+  (if (= (count args) 3)
+    args
+    (cons (gensym "group_") args)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Generic operations
+;; groups
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmethod exec-interp :exec-op [[_ op-name & args] env]
-  (let [op-registry (:op-registry env)
-        op (get op-registry op-name)]
-    (if (nil? op)
-      (make-check-result
-       {:result :error
-        :exceptions (str "Unable to find operator " op-name)
-        :data args})
-      (apply op args))))
+(defmethod exec-interp :group [[_ & args] env]
+  (let [[id desc checks] (process-group-args args)
+        all-checks (:all-checks env)
+        check-defs (map #(get all-checks %) checks)
+        results (flatten (map #(exec-interp % env) check-defs))]
+    (println (str "all-checks " all-checks))
+    (println "results are")
+    (doseq [thingy results]
+      (println thingy))
+    (println "end of results")
+    (make-check-result
+     {:result (every? identity (map result results))
+      :data (map data results)
+      :desc (str desc "( " (join ", " (map description results)) ")")
+      :messages (map messages results)
+      :exceptions (map exceptions results)
+      :duration (apply + (remove nil? (map execution-duration results)))})))
