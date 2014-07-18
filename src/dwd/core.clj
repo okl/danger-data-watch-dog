@@ -248,11 +248,6 @@ vec of values of which there should only be one"
         all-checks (:all-checks env)
         check-defs (map #(get all-checks %) checks)
         results (flatten (map #(exec-interp % env) check-defs))]
-    (println (str "all-checks " all-checks))
-    (println "results are")
-    (doseq [thingy results]
-      (println thingy))
-    (println "end of results")
     (make-check-result
      {:result (every? identity (map result results))
       :data (map data results)
