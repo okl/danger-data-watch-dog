@@ -27,4 +27,4 @@
 
 (deftest check
   (testing "digit equality"
-    (is (= (result (last (exec-interp check-test {}))) true))))
+    (is (= (result (exec-interp check-test {})) true))))
