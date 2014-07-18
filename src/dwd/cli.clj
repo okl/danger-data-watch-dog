@@ -5,7 +5,8 @@
   (:require [clojure.java.io :as io])
   (:require [dwd.core :refer [exec-interp]]
             [dwd.id-interp :refer [id-interp]]
-            [dwd.icinga-interp :refer [process-file]]))
+            [dwd.icinga-interp :refer [process-file]]
+            [dwd.check-result :refer :all]))
 
 (def base-check-file "tmp/check.out")
 
@@ -31,9 +32,11 @@
 
 (defn- exec-check [_ & checks-to-execute]
   (let [checks (load-check-configs base-check-file)
-        results (map #(run-single-check checks %) checks-to-execute)]
+        results (map #(run-single-check checks %) checks-to-execute)
+        final-result (every? true? (map result results)) ]
     (doseq [result results]
-      (println "result is " result))))
+      (println "result is " result))
+    (println "Final result is " final-result)))
 
 (defn- import-file [_ file]
   (let [new-checks (load-check-configs file)
