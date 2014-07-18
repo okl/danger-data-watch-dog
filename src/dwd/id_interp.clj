@@ -81,7 +81,7 @@
   (let [gensym-prefix (str id-prefix "group_")]
     (if (= (count args) 3)
       args
-      (cons (gensym "group_") args))))
+      (cons (gensym gensym-prefix) args))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; group
 (defmethod id-interp :group [[_ & args] env]
