@@ -172,4 +172,4 @@ http://clojure.github.io/clojure-contrib/io-api.html"
           icinga-configs (flatten (map #(icinga-interp % {}) exprs))
           icinga-configs (conj icinga-configs (generate-host-config))
           icinga-configs (conj icinga-configs (generate-command-config))]
-      (map #(write-config % output-dir) icinga-configs))))
+      (doall (map #(write-config % output-dir) icinga-configs)))))
