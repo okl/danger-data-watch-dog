@@ -13,3 +13,9 @@ pom.xml.asc
 /.nrepl-port
 /.vagrant/
 /test/db/person
+/service/.nrepl-port
+/service/target
+/output
+/tmp
+/service/tmp
+/service/output
