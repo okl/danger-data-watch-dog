@@ -5,7 +5,8 @@
   (:require [clojure.java.io :refer [as-file]]
             [clojure.java.shell :refer [sh]]
             [clojure.string :refer [split join]]
-            [clj-ssh.cli :refer [sftp]])
+            [clj-ssh.cli :refer [sftp]]
+            [clojure.tools.logging :as log])
   (:require [miner.ftp :refer [with-ftp client-file-names client-cd]])
   (:require [dwd.check-result :refer [make-check-result]]))
 
@@ -93,7 +94,7 @@
         port (if (empty? (:port config))
                22
                (:port config))]
-    (println
+    (log/debug
      (str "I'm in sftp. Hostname is " hostname ", password is " password ", username is " username))
      (if (or (nil? username)
              (nil? password)
