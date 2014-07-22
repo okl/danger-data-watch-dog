@@ -18,22 +18,25 @@
   (data [this])
   (description [this]))
 
+(deftype ConcreteCheckResult [config]
+  CheckResult
+  (result [_]
+    (:result config))
+  (exceptions [_]
+    (:exceptions config))
+  (time-executed [_]
+    (:time config))
+  (execution-duration [_]
+    (:duration config))
+  (messages [_]
+    (:messages config))
+  (data [_]
+    (:data config))
+  (description [_]
+    (:desc config))
+  (toString [_]
+    (str config)))
+
+
 (defn make-check-result [config]
-  (reify
-    CheckResult
-    (result [_]
-      (:result config))
-    (exceptions [_]
-      (:exceptions config))
-    (time-executed [_]
-      (:time config))
-    (execution-duration [_]
-      (:duration config))
-    (messages [_]
-      (:messages config))
-    (data [_]
-      (:data config))
-    (description [_]
-      (:desc config))
-    (toString [_]
-      (str config))))
+  (ConcreteCheckResult. config))
