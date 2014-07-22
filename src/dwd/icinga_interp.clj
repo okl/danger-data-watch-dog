@@ -106,7 +106,9 @@ http://clojure.github.io/clojure-contrib/io-api.html"
     (config-id [_]
       "run_check")
     (config-string [_]
-      (render-resource "icinga/command.cfg"))))
+      (render-resource "icinga/command.cfg"
+                       {:script_location (:command_location config)
+                        :url (:url config)}))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
