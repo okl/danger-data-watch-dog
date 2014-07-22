@@ -2,13 +2,32 @@
   "Handler class for service webserver"
   {:author "Eric Sayle"
    :date "Fri Jul 18 14:23:25 PDT 2014"}
+  (:require [clojure.pprint :refer [pprint]])
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [compojure.handler :as handler]
             [clojure.java.io :as io]
             [ring.middleware.json :as middleware])
   (:require [dwd.core :refer :all]
-            [dwd.id-interp :refer :all]))
+            [dwd.id-interp :refer :all]
+            [dwd.check-result :refer :all]
+            [dwd.icinga-interp :refer [process-file]])
+  (:import [dwd.check_result ConcreteCheckResult]))
+
+(defprotocol Mappable
+  (to-map [self]))
+
+(extend-type ConcreteCheckResult
+  Mappable
+  (to-map [self]
+    {:result (result self)
+     :exceptions (exceptions self)
+     :time-executed (time-executed self)
+     :execution-duration (execution-duration self)
+     :messages (messages self)
+     :data (data self)
+     :description (description self)}))
+
 
 (def base-check-file "tmp/check.out")
 (defn- load-check-configs
@@ -34,20 +53,26 @@
   (let [check-def (get (get-all-checks) check-id)
         results (exec-interp check-def {})]
     (if (seq? results)
-      (clojure.string/join " " results)
-      (str results))))
+      (first results)
+      results)))
 
 (defn- save-checks! []
   (io/make-parents base-check-file)
-  (spit base-check-file (vals (get-all-checks))))
+  (spit base-check-file (with-out-str (pprint (vals (get-all-checks))))))
 
+(defn- create-icinga-config! []
+  (process-file base-check-file))
 
 (defroutes app-routes
   (GET "/" [] "<h1>Hello World</h1>")
   (GET "/test" [] "Testing")
   (GET "/run/:check-id" [check-id]
-    {:status 200
-     :body (run-check! (symbol check-id))})
+    (let [result (run-check! (symbol check-id))]
+      (if (nil? result)
+        {:status 404
+         :body (str "Check " check-id " not found")}
+        {:status 200
+         :body (to-map result)})))
   (POST "/create-check" [data]
     (if (not data)
       {:status 400
@@ -61,6 +86,9 @@
   (POST "/save-checks" []
     {:status 200
      :body (save-checks!)})
+  (POST "/create-icinga-config" []
+    {:status 200
+     :body (create-icinga-config!)})
   (route/not-found "<h1>Page not found</h1>"))
 
 
