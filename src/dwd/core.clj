@@ -136,16 +136,14 @@ vec of values of which there should only be one"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## define-config
 ;; ex ```
-;;     '(with-s3 (define-config my-s3-config {:access-key "blah"
-;;                                            :secret-key "blah"
-;;                                            :bucket "blah"}
+;;     '(with-s3 (define-config {:access-key "blah"
+;;                               :secret-key "blah"
+;;                               :bucket "blah"})
 ;;
 ;; This defines a configuration that can both be used later, and
 ;; at the present time
 (defmethod exec-interp :define-config [[_ id config-map & exprs] env]
-  (let [new-env (merge env {:config-registry (defconfig id config-map)})]
-    (str "Using configuration with id " id " as " config-map "\n"
-         (join "\n" (map #(exec-interp % new-env) exprs)))))
+  config-map)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; databases
