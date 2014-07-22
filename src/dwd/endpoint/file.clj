@@ -82,7 +82,7 @@
              {:result result
               :data expr
               :desc (:desc env)
-              :messages file-names})))))))
+              :messages file-names-result})))))))
 
 
 (defn- sftp-file-present? [expr env]
