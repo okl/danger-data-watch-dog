@@ -12,6 +12,19 @@
       yum: name=php,php-cli,php-pear,php-xmlrpc,php-xsl,php-pdo,php-soap,php-gd,php-ldap,php-mysql,mysql-server,mysql-devel
            state=present
 
+    - name: install java for lein
+      yum: name=java-1.7.0-openjdk,java-1.7.0-openjdk-devel
+           state=present
+
+    # ignoring certs since github doesn't match rawdata.github
+    - name: download lein script.
+      command: wget --no-check-certificate https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
+               creates=lein
+
+    - name: install lein
+      command: /bin/bash lein
+              creates=/usr/bin/lein
+
     - name: install repoforge to install icinga
       yum: name=http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
            state=present
@@ -35,18 +48,22 @@
     - name: start mysql
       service: name=mysqld
                state=started
+               enabled=yes
 
     - name: start httpd
       service: name=httpd
                state=started
+               enabled=yes
 
     - name: start icinga
       service: name=icinga
                state=started
+               enabled=yes
 
     - name: start ido
       service: name=ido2db
                state=started
+               enabled=yes
 
     - name: create icinga database
       mysql_db: name=icinga
