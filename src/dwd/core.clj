@@ -8,7 +8,8 @@
             [clojure.java.shell :refer [sh]])
   (:require [diesel.core :refer :all]
             [roxxi.utils.print :refer :all])
-  (:require [dwd.endpoint.file :refer :all]
+  (:require [dwd.files.file :refer :all]
+            [dwd.files.core :refer [file-for-type]]
             [dwd.check-result :refer :all]))
 
 
@@ -62,6 +63,7 @@
   ;; Supporting Files
   ['with-s3 => :with-s3]
   ['with-ftp => :with-ftp]
+  ['with-sftp => :with-sftp]
   ;; Predicates
   ['= => :=]
   ['>= => :>=]
@@ -179,6 +181,16 @@ vec of values of which there should only be one"
     (map #(exec-interp % new-env) exprs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## with-sftp
+;; ex. `'(with-sftp sftp-config (file-present? /path/to/file)`
+;;
+(defmethod exec-interp :with-sftp [[_ sftp-config & exprs] env]
+  (let [config (exec-interp sftp-config env)
+        new-env (merge env {:location "sftp" :sftp-config config})]
+    (map #(exec-interp % new-env) exprs)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; predicates
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -205,11 +217,19 @@ vec of values of which there should only be one"
 ;; `'(file-present? /path/to/file.txt)`
 ;;
 (defmethod exec-interp :file-present? [[_ file-expr] env]
-  (let [location (:location env)]
-    (case location
-      nil   (local-file-present? file-expr env)
-      "s3"  (s3-file-present? file-expr env)
-      "ftp" (ftp-file-present? file-expr env))))
+  (let [location (:location env)
+        location (if (nil? location) :local location)]
+    (file-present? ((file-for-type location) file-expr env))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## file-mtime
+;; `(>= (file-mtime)
+;;      (- (now) (date "24 hours")))
+;;
+(defmethod exec-interp :file-mtime [[_ file-expr] env]
+  (let [location (:location env)
+        location (if (nil? location) :local location)]
+    (file-mtime ((file-for-type :location) file-expr env))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## query

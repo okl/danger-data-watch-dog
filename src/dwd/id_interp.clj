@@ -17,6 +17,7 @@
   ;; Supporting Files
   ['with-s3 => :with-s3]
   ['with-ftp => :with-ftp]
+  ['with-sftp => :with-sftp]
   ;; Predicates
 ;  ['= => :=]
 ;  ['>= => :>=]
@@ -77,11 +78,18 @@
 (defmethod id-interp :with-ftp [[_ ftp-config & exprs] env]
   (create-sublist env exprs 'with-ftp ftp-config))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; with-ftp
+(defmethod id-interp :with-sftp [[_ sftp-config & exprs] env]
+  (create-sublist env exprs 'with-ftp sftp-config))
+
+
 (defn- process-group-args [args id-prefix]
   (let [gensym-prefix (str id-prefix "group_")]
     (if (= (count args) 3)
       args
       (cons (gensym gensym-prefix) args))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; group
 (defmethod id-interp :group [[_ & args] env]
