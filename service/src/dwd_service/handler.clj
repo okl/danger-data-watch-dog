@@ -15,11 +15,11 @@
   (:import [dwd.check_result ConcreteCheckResult]))
 
 (defprotocol Mappable
-  (to-map [self]))
+  (->map [self]))
 
 (extend-type ConcreteCheckResult
   Mappable
-  (to-map [self]
+  (->map [self]
     {:result (result self)
      :exceptions (exceptions self)
      :time-executed (time-executed self)
@@ -72,7 +72,7 @@
         {:status 404
          :body (str "Check " check-id " not found")}
         {:status 200
-         :body (to-map result)})))
+         :body (->map result)})))
   (POST "/create-check" [data]
     (if (not data)
       {:status 400
