@@ -31,7 +31,8 @@
   {:local make-local-file
    :s3    make-s3-file
    :ftp   make-ftp-file
-   :sftp  make-sftp-file})
+   :sftp  make-sftp-file
+   nil    make-local-file})
 
 (defn file-for-type [type]
   (let [keyword-type (if (keyword? type) type (keyword type))
