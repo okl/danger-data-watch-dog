@@ -13,7 +13,8 @@
                  [clj-ssh "0.5.10"]
                  [clj-yaml "0.4.0"]
                  [de.ubercode.clostache/clostache "1.4.0"]
-                 [clj-aws-s3 "0.3.9"]]
+                 [clj-aws-s3 "0.3.9"]
+                 [digest "1.4.4"]]
   :main dwd.cli
   :profiles {:dev {:dependencies [[org.xerial/sqlite-jdbc "3.7.2"]
                                   [org.slf4j/slf4j-simple "1.7.5"]]

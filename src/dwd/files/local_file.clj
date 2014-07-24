@@ -3,6 +3,7 @@
   {:author "Eric Sayle"
    :date "Wed Jul 23 13:09:58 PDT 2014"}
   (:require [clojure.java.io :refer [as-file]])
+  (:require [digest])
   (:require [dwd.files.file :refer [File]]
             [dwd.check-result :refer [make-check-result]]))
 
@@ -16,6 +17,16 @@
   (file-mtime [_]
     (make-check-result
      {:result (.lastModified (as-file file))
+      :data file
+      :desc desc}))
+  (file-hash [_]
+    (make-check-result
+     {:result (digest/md5 (as-file file))
+      :data file
+      :desc desc}))
+  (file-size [_]
+    (make-check-result
+     {:result (.length (as-file file))
       :data file
       :desc desc})))
 
