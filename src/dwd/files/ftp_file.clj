@@ -14,11 +14,28 @@
     (let [filename (last (split file #"/"))
           path (subs file 0 (- (count file) (count filename)))
           path-files (ftp/list-files (str uri path))]
-
       (make-check-result
        {:result (if (some #{filename} path-files) true false)
         :data file
-        :desc desc}))))
+        :desc desc})))
+  (file-mtime [_]
+    (make-check-result
+     {:result :error
+      :data file
+      :desc desc
+      :exceptions "Modified time not supported via FTP"}))
+  (file-size [_]
+    (make-check-result
+     {:result :error
+      :data file
+      :desc desc
+      :exceptions "Size not supported via FTP"}))
+  (file-hash[_]
+    (make-check-result
+     {:result :error
+      :data file
+      :desc desc
+      :exceptions "Size not supported via FTP"})))
 
 (defn make-ftp-file [expr env]
   (let [config (:ftp-config env)
