@@ -68,6 +68,8 @@
   ['= => :=]
   ['>= => :>=]
   ['file-present? => :file-present?]
+  ['file-mtime => :file-mtime]
+  ['file-size => :file-size]
   ;; groups
   ['group => :group])
 
@@ -217,8 +219,7 @@ vec of values of which there should only be one"
 ;; `'(file-present? /path/to/file.txt)`
 ;;
 (defmethod exec-interp :file-present? [[_ file-expr] env]
-  (let [location (:location env)
-        location (if (nil? location) :local location)]
+  (let [location (:location env)]
     (file-present? ((file-for-type location) file-expr env))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -227,9 +228,17 @@ vec of values of which there should only be one"
 ;;      (- (now) (date "24 hours")))
 ;;
 (defmethod exec-interp :file-mtime [[_ file-expr] env]
-  (let [location (:location env)
-        location (if (nil? location) :local location)]
-    (file-mtime ((file-for-type :location) file-expr env))))
+  (let [location (:location env)]
+    (file-mtime ((file-for-type location) file-expr env))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## file-size
+;; `(>= (file-size)
+;;      800000)
+;;
+(defmethod exec-interp :file-size [[_ file-expr] env]
+  (let [location (:location env)]
+    (file-size ((file-for-type location) file-expr env))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## query
