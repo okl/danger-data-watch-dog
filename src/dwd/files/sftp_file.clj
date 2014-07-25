@@ -72,7 +72,13 @@
         :data file
         :desc desc
         :exceptions exceptions
-        :messages messages}))))
+        :messages messages})))
+  (file-hash [_]
+    (make-check-result
+     {:result :error
+      :data file
+      :desc desc
+      :exceptions "Hash not supported via SFTP"})))
 
 (defn make-sftp-file [expr env]
   (let [config (:sftp-config env)
