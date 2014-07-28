@@ -3,7 +3,8 @@
   {:author "Eric Sayle"
    :date "Wed Jul 23 13:09:58 PDT 2014"}
   (:require [clojure.java.io :refer [as-file]])
-  (:require [digest])
+  (:require [digest]
+            [clj-time.coerce :as c])
   (:require [dwd.files.file :refer [File]]
             [dwd.check-result :refer [make-check-result]]))
 
@@ -16,7 +17,7 @@
       :desc desc}))
   (file-mtime [_]
     (make-check-result
-     {:result (.lastModified (as-file file))
+     {:result (c/from-long (.lastModified (as-file file)))
       :data file
       :desc desc}))
   (file-hash [_]

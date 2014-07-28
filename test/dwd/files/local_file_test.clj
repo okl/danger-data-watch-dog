@@ -1,6 +1,7 @@
 (ns dwd.files.local-file-test
   (:require [clojure.java.io :refer [as-file]]
             [clojure.test :refer :all])
+  (:require [clj-time.coerce :as c])
   (:require [dwd.files.local-file :refer :all]
             [dwd.files.file :refer :all]
             [dwd.check-result :refer :all]))
@@ -16,7 +17,7 @@
     (is (= true (result (file-present? test-file))))
     (is (= false (result (file-present? not-real-file)))))
   (testing "file-mtime"
-    (is (= (.lastModified (as-file "test/dwd/files/test.txt"))
+    (is (= (c/from-long (.lastModified (as-file "test/dwd/files/test.txt")))
            (result (file-mtime test-file)))))
   (testing "file-hash"
     (is (= "99f16f369162d3c718bcd01644666ee2"
