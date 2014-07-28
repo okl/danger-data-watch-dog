@@ -23,7 +23,7 @@
       :data path
       :desc desc}))
   (file-mtime [_]
-    (file-metadata-result :last-modiifed cred bucket path desc))
+    (file-metadata-result :last-modified cred bucket path desc))
   (file-hash [_]
     (file-metadata-result :content-md5 cred bucket path desc))
   (file-size [_]
