@@ -2,8 +2,9 @@
   "Files connected via sftp (not ftp)"
   {:author "Eric Sayle"
    :date "Wed Jul 23 14:01:29 PDT 2014"}
-  (:require [clojure.tools.logging :as log]
-            [clj-ssh.cli :refer [sftp]])
+  (:require [clojure.tools.logging :as log])
+  (:require [clj-ssh.cli :refer [sftp]]
+            [clj-time.coerce :as c])
   (:require [dwd.files.file :refer [File]]
             [dwd.check-result :refer [make-check-result]]))
 
@@ -49,7 +50,7 @@
                      file)
           result (if (instance? Exception file-stat)
                    :error
-                   (.getMTime file-stat))
+                   (c/from-long (* 1000 (.getMTime file-stat))))
           exceptions (when (instance? Exception file-stat) file-stat)
           messages file-stat]
       (make-check-result
