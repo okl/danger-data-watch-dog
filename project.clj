@@ -12,6 +12,7 @@
                  [com.velisco/clj-ftp "0.3.1"]
                  [clj-ssh "0.5.10"]
                  [clj-yaml "0.4.0"]
+                 [clj-time "0.7.0"]
                  [de.ubercode.clostache/clostache "1.4.0"]
                  [clj-aws-s3 "0.3.9"]
                  [digest "1.4.4"]]

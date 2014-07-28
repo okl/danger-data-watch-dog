@@ -7,7 +7,8 @@
             [clojure.tools.logging :as log]
             [clojure.java.shell :refer [sh]])
   (:require [diesel.core :refer :all]
-            [roxxi.utils.print :refer :all])
+            [roxxi.utils.print :refer :all]
+            [clj-time.core :as t])
   (:require [dwd.files.file :refer :all]
             [dwd.files.core :refer [file-for-type]]
             [dwd.check-result :refer :all]))
@@ -52,6 +53,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; # The language
 
+;; date functions pass out to clj-time library
+(def date-ops
+  {'today t/today
+   'yesterday #(t/minus (t/today) (t/days 1))
+   'date-plus t/plus
+   'date-minus t/minus
+   'year t/year
+   'month t/month
+   'day t/day
+   'hour t/hour
+   'minute t/minute
+   'second t/second
+   'years t/years
+   'months t/months
+   'days t/days
+   'hours t/hours
+   'minutes t/minutes
+   'seconds t/seconds})
+
+(defn- date-op? [expr]
+  (date-ops (first expr)))
+
 (definterpreter exec-interp [env]
   ['testing => :testing]
   ['check => :check]
@@ -67,11 +90,14 @@
   ;; Predicates
   ['= => :=]
   ['>= => :>=]
+  ;; files
   ['file-present? => :file-present?]
   ['file-mtime => :file-mtime]
   ['file-size => :file-size]
   ;; groups
-  ['group => :group])
+  ['group => :group]
+  ;; date info
+  [date-op? => :date-op])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
@@ -282,3 +308,12 @@ vec of values of which there should only be one"
       :messages (map messages results)
       :exceptions (map exceptions results)
       :duration (apply + (remove nil? (map execution-duration results)))})))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; time/date stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmethod exec-interp :date-op [[op-name & args] env]
+  (let [op (date-ops op-name)
+        interped-args (map #(if (seq? %) (exec-interp % env) %) args)]
+    (apply op interped-args)))
