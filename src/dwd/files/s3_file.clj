@@ -12,8 +12,8 @@
   (let [metadata (s3/get-object-metadata cred bucket path)]
     (make-check-result
      {:result (get metadata prop)
-        :data path
-        :desc desc})))
+      :data path
+      :desc desc})))
 
 (deftype S3File [cred bucket path desc]
   File
