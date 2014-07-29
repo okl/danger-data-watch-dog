@@ -8,7 +8,8 @@
             [clojure.java.shell :refer [sh]])
   (:require [diesel.core :refer :all]
             [roxxi.utils.print :refer :all]
-            [clj-time.core :as t])
+            [clj-time.core :as t]
+            [clj-time.coerce :as c])
   (:require [dwd.files.file :refer :all]
             [dwd.files.core :refer [file-for-type]]
             [dwd.check-result :refer :all]))
@@ -90,6 +91,7 @@
   ;; Predicates
   ['= => :=]
   ['>= => :>=]
+  ['<= => :<=]
   ;; files
   ['file-present? => :file-present?]
   ['file-mtime => :file-mtime]
@@ -234,11 +236,68 @@ vec of values of which there should only be one"
         result (apply = (map #(if (satisfies? CheckResult %)
                                 (.result %)
                                 %)
-                             results))
-        result-map {:result result
-                    :data results
-                    :desc (:desc env)}]
-    (make-check-result result-map)))
+                             results))]
+    (make-check-result
+     {:result result
+      :data results
+      :desc (:desc env)})))
+
+(defmulti greater-equal? (fn [arg1 arg2] (class arg1)))
+(defn- date-greater-equal? [arg1 arg2]
+  (or (= arg1 arg2) (t/after? (c/to-date-time arg1) (c/to-date-time arg2))))
+(defmethod greater-equal? java.util.Date [arg1 arg2]
+  (date-greater-equal? arg1 arg2))
+(defmethod greater-equal? org.joda.time.DateTime [arg1 arg2]
+  (date-greater-equal? arg1 arg2))
+(defmethod greater-equal? org.joda.time.LocalDate [arg1 arg2]
+  (date-greater-equal? arg1 arg2))
+(defmethod greater-equal? :default [arg1 arg2]
+  (>= arg1 arg2))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## >=
+;; ex. `' (>= >=expr1 >=expr2)`
+(defmethod exec-interp :>= [[_ >=expr1 >=expr2] env]
+  (let [results (map #(if (or (symbol? % ) (seq? %))
+                                 (exec-interp % env)
+                                 %)
+                               [>=expr1 >=expr2])
+        result (apply greater-equal? (map #(if (satisfies? CheckResult %)
+                                             (.result %)
+                                             %)
+                                          results))]
+    (make-check-result
+     {:result result
+      :data results
+      :desc (:desc env)})))
+
+(defmulti lesser-equal? (fn [arg1 arg2] (class arg1)))
+(defn- date-lesser-equal? [arg1 arg2]
+  (or (= arg1 arg2) (t/before? (c/to-date-time arg1) (c/to-date-time arg2))))
+(defmethod lesser-equal? java.util.Date [arg1 arg2]
+  (date-lesser-equal? arg1 arg2))
+(defmethod lesser-equal? org.joda.time.DateTime [arg1 arg2]
+  (date-lesser-equal? arg1 arg2))
+(defmethod lesser-equal? org.joda.time.LocalDate [arg1 arg2]
+  (date-lesser-equal? arg1 arg2))
+(defmethod lesser-equal? :default [arg1 arg2]
+  (<= arg1 arg2))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## >=
+;; ex. `' (>= >=expr1 >=expr2)`
+(defmethod exec-interp :<= [[_ <=expr1 <=expr2] env]
+  (let [results (map #(if (or (symbol? % ) (seq? %))
+                                 (exec-interp % env)
+                                 %)
+                               [<=expr1 <=expr2])
+        result (apply lesser-equal? (map #(if (satisfies? CheckResult %)
+                                            (.result %)
+                                            %)
+                                         results))]
+    (make-check-result
+     {:result result
+      :data results
+      :desc (:desc env)})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## file-present?

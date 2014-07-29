@@ -28,3 +28,13 @@
 (deftest check
   (testing "digit equality"
     (is (= (result (exec-interp check-test {})) true))))
+
+
+(deftest date
+  (testing "date comparison"
+    (is (= true
+           (result (exec-interp '(check "blah" (= (today) (today))) {}))))
+    (is (= true
+           (result (exec-interp '(check "blah" (>= (today) (yesterday))) {}))))
+    (is (= true
+           (result (exec-interp '(check "blah" (<= (yesterday) (today))) {}))))))
