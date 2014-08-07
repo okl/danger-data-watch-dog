@@ -44,6 +44,7 @@
     - name: stop iptables for external access to ports
       service: name=iptables
                state=stopped
+               enabled=no
 
     - name: start mysql
       service: name=mysqld
