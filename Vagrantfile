@@ -15,6 +15,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "ansible", :playbook => "vagrant/playbook.yml"
 
   config.vm.network "forwarded_port", guest: 80, host: 8888
+  config.vm.network "forwarded_port", guest: 3000, host: 11111, id: "lein server"
   config.vm.network "forwarded_port", guest: 22, host: 2200, id: "ssh"
   
 end
