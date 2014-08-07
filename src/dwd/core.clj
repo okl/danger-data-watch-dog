@@ -232,6 +232,8 @@
   (date-greater-equal? arg1 arg2))
 (defmethod greater-equal? org.joda.time.LocalDate [arg1 arg2]
   (date-greater-equal? arg1 arg2))
+(defmethod greater-equal? clojure.lang.Keyword [arg1 arg2]
+  arg1)
 (defmethod greater-equal? :default [arg1 arg2]
   (>= arg1 arg2))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
