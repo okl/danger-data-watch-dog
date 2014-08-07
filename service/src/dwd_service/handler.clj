@@ -68,11 +68,16 @@
   (GET "/test" [] "Testing")
   (GET "/run/:check-id" [check-id]
     (let [result (run-check! (symbol check-id))]
-      (if (nil? result)
-        {:status 404
-         :body (str "Check " check-id " not found")}
-        {:status 200
-         :body (->map result)})))
+      (cond
+       (nil? result)
+       {:status 404
+        :body (str "Check " check-id " not found")}
+       (instance? Exception result)
+       {:status 500
+        :body (str result)}
+       :else
+       {:status 200
+        :body (->map result)})))
   (POST "/create-check" [data]
     (if (not data)
       {:status 400
