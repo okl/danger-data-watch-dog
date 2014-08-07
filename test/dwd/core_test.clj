@@ -37,4 +37,17 @@
     (is (= true
            (result (exec-interp '(check "blah" (>= (today) (yesterday))) {}))))
     (is (= true
-           (result (exec-interp '(check "blah" (<= (yesterday) (today))) {}))))))
+           (result (exec-interp '(check "blah" (<= (yesterday) (today))) {}))))
+    (is (= true
+           (result
+            (exec-interp
+             '(check "blah" (>= (today)
+                                (date-minus (today) (days 200))))
+             {})))))
+  (testing "compare dates to file mtimes"
+    (is (= true
+           (result
+            (exec-interp
+             '(check "blah" (>= (file-mtime "project.clj")
+                                (date-minus (today) (years 50))))
+             {}))))))
