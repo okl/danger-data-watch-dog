@@ -10,3 +10,12 @@ pom.xml.asc
 .lein-failures
 .lein-plugins
 .lein-repl-history
+/.nrepl-port
+/.vagrant/
+/test/db/person
+/service/.nrepl-port
+/service/target
+/output
+/tmp
+/service/tmp
+/service/output

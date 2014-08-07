@@ -1,0 +1,5 @@
+#!/bin/sh
+
+cd ..
+
+lein run exec-check $@
