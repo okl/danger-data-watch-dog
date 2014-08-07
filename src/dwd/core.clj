@@ -168,34 +168,38 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn- with-fs [config location env exprs]
+  (let [config-keyword (keyword (str location "-config"))
+        eval-config (exec-interp config env)
+        new-env (merge env {:location location config-keyword eval-config})]
+    (if (> (count exprs) 1)
+      (make-check-result
+       {:exception "Too many exprs in with-fs during exec"})
+      (exec-interp (first exprs) new-env))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## with-s3
 ;; ex. `'(with-s3 s3-config (file-present? /path/to/file)`
 ;;
+;; on execution, there should only be a single expr used
 (defmethod exec-interp :with-s3 [[_ s3-config & exprs] env]
-  (let [config (exec-interp s3-config env)
-        new-env (merge env {:location "s3" :s3-config config})]
-    (map #(exec-interp % new-env) exprs)))
+  (with-fs s3-config "s3" env exprs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## with-ftp
 ;; ex. `'(with-ftp ftp-config (file-present? /path/to/file)`
 ;;
+;; on execution, there should only be a single expr used
 (defmethod exec-interp :with-ftp [[_ ftp-config & exprs] env]
-  (let [config (exec-interp ftp-config env)
-        new-env (merge env {:location "ftp" :ftp-config config})]
-    (map #(exec-interp % new-env) exprs)))
+  (with-fs ftp-config "ftp" env exprs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## with-sftp
 ;; ex. `'(with-sftp sftp-config (file-present? /path/to/file)`
 ;;
+;; on execution, there should only be a single expr used
 (defmethod exec-interp :with-sftp [[_ sftp-config & exprs] env]
-  (let [config (exec-interp sftp-config env)
-        new-env (merge env {:location "sftp" :sftp-config config})]
-    (map #(exec-interp % new-env) exprs)))
-
+  (with-fs sftp-config "sftp" env exprs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; predicates
@@ -238,10 +242,10 @@
                                  (exec-interp % env)
                                  %)
                                [>=expr1 >=expr2])
-        result (apply greater-equal? (map #(if (satisfies? CheckResult %)
-                                             (.result %)
-                                             %)
-                                          results))]
+        result (apply greater-equal? (doall (map #(if (satisfies? CheckResult %)
+                                                    (.result %)
+                                                    %)
+                                                 results)))]
     (make-check-result
      {:result result
       :data results
@@ -258,7 +262,6 @@
   (date-lesser-equal? arg1 arg2))
 (defmethod lesser-equal? :default [arg1 arg2]
   (<= arg1 arg2))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## >=
 ;; ex. `' (>= >=expr1 >=expr2)`
