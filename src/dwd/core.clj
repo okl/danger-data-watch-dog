@@ -109,29 +109,6 @@
   (let [new-env (append-desc env desc)]
     (map #(exec-interp % new-env) exprs)))
 
-
-(defn- result->pass-fail
-  "It's assumed that an vec of vecs is returned
-where the first vec contains the vec of column headers (of
-which there should only be one) and the second vec is an
-vec of values of which there should only be one"
-  [result]
-  (let [extracted-value (first (second result))
-        success-fn #(= 1 %)]
-    (cond
-     (success-fn extracted-value) :pass
-     (not (success-fn extracted-value)) :fail
-    :else
-    (do
-      ;; log this
-      (log/error
-       (format "Unable to determine whether >>>%s<<< is a success or failure"
-               result))
-
-      :error))))
-
-
-
  (defn- process-check-args [args]
   (if (= (count args) 3)
     args
