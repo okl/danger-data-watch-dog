@@ -22,8 +22,8 @@
                creates=lein
 
     - name: install lein
-      command: /bin/bash lein
-              creates=/usr/bin/lein
+      shell: yes | /bin/bash lein
+             creates=/usr/bin/lein
 
     - name: install repoforge to install icinga
       yum: name=http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
