@@ -122,12 +122,12 @@
 ;; this is the execution of a check
 (defmethod exec-interp :check [[_ & args] env]
   (let [[id desc expr] (process-check-args args)
-        new-env (append-desc env desc)
-        result (try
-                 (exec-interp expr new-env)
-                 (catch Exception e
-                     (log/spy e)))]
-    result))
+        new-env (append-desc env desc)]
+    (log/info "Executing check " id)
+    (try
+      (exec-interp expr new-env)
+      (catch Exception e
+        (log/spy e)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## lookup-config
