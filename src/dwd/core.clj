@@ -262,6 +262,8 @@
   (date-lesser-equal? arg1 arg2))
 (defmethod lesser-equal? org.joda.time.LocalDate [arg1 arg2]
   (date-lesser-equal? arg1 arg2))
+(defmethod lesser-equal? clojure.lang.Keyword [arg1 arg2]
+  arg1)
 (defmethod lesser-equal? :default [arg1 arg2]
   (<= arg1 arg2))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
