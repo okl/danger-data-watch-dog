@@ -18,12 +18,14 @@
 
     # ignoring certs since github doesn't match rawdata.github
     - name: download lein script.
-      command: wget --no-check-certificate https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
-               creates=lein
+      command: wget -O /usr/bin/lein --no-clobber --no-check-certificate https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
+               creates=/usr/bin/lein
+
+    - name: set permissions on lein
+      file: mode=755 dest=/usr/bin/lein
 
     - name: install lein
-      shell: yes | /bin/bash lein
-             creates=/usr/bin/lein
+      shell: yes | /usr/bin/lein
 
     - name: install repoforge to install icinga
       yum: name=http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
