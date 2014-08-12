@@ -93,3 +93,8 @@
     - name: load the icinga_web schema
       shell: mysql -u root icinga_web < /usr/share/doc/icinga-web-1.7.2/schema/mysql.sql && touch /etc/icinga-web/db_loaded.done
              creates=/etc/icinga-web/db_loaded.done
+
+- hosts: all
+  tasks:
+   - name: make the clj-ssh.cli library happy by creating a known_hosts file
+     command: touch ~/.ssh/known_hosts
