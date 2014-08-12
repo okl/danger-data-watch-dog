@@ -6,11 +6,14 @@
             [clojure.java.jdbc :as j]
             [clojure.tools.logging :as log]
             [clojure.java.shell :refer [sh]])
-  (:require [diesel.core :refer :all]
-            [roxxi.utils.print :refer :all]
+  (:require [diesel.core :refer [definterpreter]]
+            [roxxi.utils.print :refer [print-expr]]
             [clj-time.core :as t]
             [clj-time.coerce :as c])
-  (:require [dwd.files.file :refer :all]
+  (:require [dwd.files.file :refer [file-present?
+                                    file-mtime
+                                    file-size
+                                    file-hash]]
             [dwd.files.core :refer [file-for-type]]
             [dwd.check-result :refer :all]))
 
