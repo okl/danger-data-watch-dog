@@ -30,12 +30,12 @@
       :data file
       :desc desc
       :exceptions "Size not supported via FTP"}))
-  (file-hash[_]
+  (file-hash [_]
     (make-check-result
      {:result :error
       :data file
       :desc desc
-      :exceptions "Size not supported via FTP"})))
+      :exceptions "Hash not supported via FTP"})))
 
 (defn make-ftp-file [expr env]
   (let [config (:ftp-config env)

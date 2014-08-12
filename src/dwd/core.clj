@@ -98,6 +98,7 @@
   ;; files
   ['file-present? => :file-present?]
   ['file-mtime => :file-mtime]
+  ['file-hash => :file-hash]
   ['file-size => :file-size]
   ;; groups
   ['group => :group]
@@ -302,6 +303,16 @@
 (defmethod exec-interp :file-mtime [[_ file-expr] env]
   (let [location (:location env)]
     (file-mtime ((file-for-type location) file-expr env))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## file-hash
+;; `(= (file-hash a)
+;;     (file-hash b))
+;;
+(defmethod exec-interp :file-hash [[_ file-expr] env]
+  (let [location (:location env)]
+    (file-hash ((file-for-type location) file-expr env))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## file-size
