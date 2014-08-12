@@ -8,8 +8,13 @@
   (:require [dwd.files.file :refer [File]]
             [dwd.check-result :refer [make-check-result]]))
 
+(defn- get-metadata-if-exists [cred bucket path]
+  (if (s3/object-exists? cred bucket path)
+      (s3/get-object-metadata cred bucket path)
+      nil))
+
 (defn- file-metadata-result [prop cred bucket path desc]
-  (let [metadata (s3/get-object-metadata cred bucket path)]
+  (let [metadata (get-metadata-if-exists cred bucket path)]
     (make-check-result
      {:result (get metadata prop)
       :data path
@@ -19,7 +24,7 @@
   File
   (file-present? [_]
     (make-check-result
-     {:result (not (nil? (s3/get-object-metadata cred bucket path)))
+     {:result (not (nil? (get-metadata-if-exists cred bucket path)))
       :data path
       :desc desc}))
   (file-mtime [_]
