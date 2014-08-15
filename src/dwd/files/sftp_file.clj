@@ -6,7 +6,20 @@
   (:require [clj-ssh.cli :refer [sftp]]
             [clj-time.coerce :as c])
   (:require [dwd.files.file :refer [File]]
+            [dwd.files.file-system :refer [FileSystem]]
             [dwd.check-result :refer [make-check-result]]))
+
+;; # Helpers
+
+(defmacro cfg-property [env property] `(get (:sftp-config ~env) ~property))
+(defn- username [env] (cfg-property env :username))
+(defn- password [env] (cfg-property env :password))
+(defn- hostname [env] (cfg-property env :hostname))
+(defn- port [env] (if (nil? (cfg-property env :port))
+                    22
+                    (cfg-property env :port)))
+
+;; # File
 
 (defprotocol SftpConnection
   (list-file [_ file])
@@ -82,15 +95,34 @@
       :exceptions "Hash not supported via SFTP"})))
 
 (defn make-sftp-file [expr env]
-  (let [config (:sftp-config env)
-        username (:username config)
-        password (:password config)
-        hostname (:hostname config)
-        port (if (empty? (:port config))
-               22
-               (:port config))]
-     (if (or (nil? username)
-             (nil? password)
-             (nil? hostname))
-       (log/error "Missing configuration for sftp")
-       (SftpFile. username password hostname port expr (:desc env)))))
+  (let [username (username env)
+        password (password env)
+        hostname (hostname env)
+        port (port env)]
+    (if (or (nil? username)
+            (nil? password)
+            (nil? hostname))
+      (log/error "Missing configuration for sftp")
+      (SftpFile. username password hostname port expr (:desc env)))))
+
+;; # Filesystem
+
+(deftype SftpFileSystem [username password hostname port desc]
+  FileSystem
+  (list-files-matching-prefix [_ prefix]
+    (make-check-result
+     {:result :error
+      :data prefix
+      :desc desc
+      :exceptions "List-files-matching-prefix not supported for SFTP filesystem"})))
+
+(defn make-sftp-file-system [env]
+  (let [username (username env)
+        password (password env)
+        hostname (hostname env)
+        port (port env)]
+    (if (or (nil? username)
+            (nil? password)
+            (nil? hostname))
+      (log/error "Missing configuration for sftp")
+      (SftpFileSystem. username password hostname port (:desc env)))))

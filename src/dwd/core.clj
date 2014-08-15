@@ -14,7 +14,9 @@
                                     file-mtime
                                     file-size
                                     file-hash]]
-            [dwd.files.core :refer [file-for-type]]
+            [dwd.files.file-system :refer [list-files-matching-prefix]]
+            [dwd.files.core :refer [file-for-type
+                                    filesystem-for-type]]
             [dwd.check-result :refer :all]))
 
 
@@ -100,6 +102,9 @@
   ['file-mtime => :file-mtime]
   ['file-hash => :file-hash]
   ['file-size => :file-size]
+  ['list-files-matching-prefix => :list-files-matching-prefix]
+  ['list-files-in-date-range => :list-files-in-date-range]
+  ['list-files-newer-than => :list-files-newer-than]
   ;; groups
   ['group => :group]
   ;; date info
@@ -322,6 +327,56 @@
 (defmethod exec-interp :file-size [[_ file-expr] env]
   (let [location (:location env)]
     (file-size ((file-for-type location) file-expr env))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## list-files-matching-prefix
+;; `(list-files-matching-prefix "s3://okl-danger/yodaetl/resources/diag")`
+;;
+;; In UNIX terms, this is equivalent to (NOT SURE)
+;; In S3 terms, this is equivalent to `s3cmd ls -r prefix`
+(defmethod exec-interp :list-files-matching-prefix [[_ prefix] env]
+  (let [location (:location env)
+        fs ((filesystem-for-type location) env)]
+    (list-files-matching-prefix fs prefix)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## list-files-in-date-range
+;; `(list-files-in-date-range
+;;      "s3://bucket/file/%Y/%m/%d"
+;;      "s3://bucket/file/2014/08/01"
+;;      "s3://bucket/file/2014/08/15")
+;;
+;; Takes 3 args:
+;; - date-expr-string
+;; - date-expr-string formatted as start time
+;; - date-expr-string formatted as end time
+;;
+;; Returns the files in order by date.
+(defmethod exec-interp :list-files-in-date-range
+  [[_ date-expr formatted-start formatted-end] env]
+  (let [location (:location env)]
+    (throw (RuntimeException. "list-files-in-date-range not implemented!"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## list-files-newer-than
+;; `(list-files-newer-than
+;;      "s3://bucket/file/%Y/%m/%d"
+;;      "s3://bucket/file/2014/08/01")
+;;
+;; Takes 2 args:
+;; - date-expr-string
+;; - formatted-date-expr-string (may be empty string)
+;;
+;; If the formatted-date-expr-string is empty string, the
+;; behavior is to take everything before the first
+;; date-conversion-specifier (i.e. before the first %Y or
+;; whatever), call that the prefix, and return
+;;    (list-files-matching-prefix prefix)
+;;
+;;  Returns the files in order by date.
+(defmethod exec-interp :list-files-newer-than [[_ date-expr formatted] env]
+  (let [location (:location env)]
+    (throw (RuntimeException. "list-files-newer-than not implemented!"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## query
