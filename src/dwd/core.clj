@@ -334,6 +334,9 @@
 ;;
 ;; In UNIX terms, this is equivalent to (NOT SURE)
 ;; In S3 terms, this is equivalent to `s3cmd ls -r prefix`
+;;
+;; XXX As a library: this should return a lazy seq!
+;; XXX As an application: add a "take n" option to lazy seqify
 (defmethod exec-interp :list-files-matching-prefix [[_ prefix] env]
   (let [location (:location env)
         fs ((filesystem-for-type location) env)]
