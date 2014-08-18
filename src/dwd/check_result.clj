@@ -40,3 +40,8 @@
 
 (defn make-check-result [config]
   (ConcreteCheckResult. config))
+
+(defn xform-the-result [check-result xform]
+  (let [cfg (.config check-result)
+        new-cfg (update-in cfg [:result] xform)]
+    (make-check-result new-cfg)))

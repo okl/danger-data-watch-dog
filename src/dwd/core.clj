@@ -335,12 +335,18 @@
 ;; In UNIX terms, this is equivalent to (NOT SURE)
 ;; In S3 terms, this is equivalent to `s3cmd ls -r prefix`
 ;;
-;; XXX As a library: this should return a lazy seq!
-;; XXX As an application: add a "take n" option to lazy seqify
-(defmethod exec-interp :list-files-matching-prefix [[_ prefix] env]
+;; Takes 2 args:
+;; - the prefix string to match against
+;; - [OPTTIONAL] the number of matches to return. Defaults to "all matches"
+;;
+;; This returns a lazy seq in the :result field!
+(defmethod exec-interp :list-files-matching-prefix [[_ prefix & [limit]] env]
   (let [location (:location env)
-        fs ((filesystem-for-type location) env)]
-    (list-files-matching-prefix fs prefix)))
+        fs ((filesystem-for-type location) env)
+        all-matches (list-files-matching-prefix fs prefix)]
+    (if (nil? limit)
+      all-matches
+      (xform-the-result all-matches (partial take limit)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## list-files-in-date-range
