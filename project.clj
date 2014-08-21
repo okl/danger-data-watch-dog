@@ -8,6 +8,7 @@
                  [com.onekingslane.danger/diesel "1.0.1"]
                  [vertica-jdk5/vertica-jdk5 "6.1.3-0"]
                  [com.onekingslane.danger/clojure-common-utils "0.0.19"]
+                 [com.onekingslane.danger/date-expr "0.2.0"]
                  [com.velisco/clj-ftp "0.3.1"]
                  [clj-ssh "0.5.10"]
                  [clj-yaml "0.4.0"]

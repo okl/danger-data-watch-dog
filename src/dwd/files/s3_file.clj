@@ -6,7 +6,8 @@
             [clojure.string :refer [split join]])
   (:require [aws.sdk.s3 :as s3])
   (:require [dwd.files.file :refer [File]]
-            [dwd.files.file-system :refer [FileSystem]]
+            [dwd.files.file-system :refer [FileSystem
+                                           make-file-listing]]
             [dwd.check-result :refer [make-check-result]]))
 
 ;; # Helpers
@@ -98,9 +99,9 @@
 
 (deftype S3FileSystem [cred desc]
   FileSystem
-  (list-files-matching-prefix [_ prefix]
+  (list-files-matching-prefix [_ prefix options]
     (make-check-result
-     {:result (lazily-ls-chunks prefix cred)
+     {:result (make-file-listing (lazily-ls-chunks prefix cred) nil false)
       :data prefix
       :desc desc})))
 

@@ -59,7 +59,7 @@
 
 (deftype ErrorFileSystem [type]
   FileSystem
-  (list-files-matching-prefix [_ prefix]
+  (list-files-matching-prefix [_ prefix options]
     (make-error-result type)))
 
 (def- file-system-type-registry

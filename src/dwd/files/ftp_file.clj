@@ -79,7 +79,7 @@
 
 (deftype FtpFileSystem [uri desc]
   FileSystem
-  (list-files-matching-prefix [_ prefix]
+  (list-files-matching-prefix [_ prefix options]
     (make-check-result
      {:result :error
       :data prefix
