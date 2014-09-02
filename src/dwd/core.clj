@@ -6,12 +6,20 @@
             [clojure.java.jdbc :as j]
             [clojure.tools.logging :as log]
             [clojure.java.shell :refer [sh]])
-  (:require [diesel.core :refer :all]
-            [roxxi.utils.print :refer :all]
+  (:require [diesel.core :refer [definterpreter]]
+            [roxxi.utils.print :refer [print-expr]]
+            [roxxi.utils.common :refer [def-]]
             [clj-time.core :as t]
             [clj-time.coerce :as c])
-  (:require [dwd.files.file :refer :all]
-            [dwd.files.core :refer [file-for-type]]
+  (:require [date-expr.core :as de])
+  (:require [dwd.files.file :refer [file-present?
+                                    file-mtime
+                                    file-size
+                                    file-hash]]
+            [dwd.files.file-system :refer [list-files-matching-prefix
+                                           make-file-listing]]
+            [dwd.files.core :refer [file-for-type
+                                    filesystem-for-type]]
             [dwd.check-result :refer :all]))
 
 
@@ -95,7 +103,11 @@
   ;; files
   ['file-present? => :file-present?]
   ['file-mtime => :file-mtime]
+  ['file-hash => :file-hash]
   ['file-size => :file-size]
+  ['list-files-matching-prefix => :list-files-matching-prefix]
+  ['list-files-in-date-range => :list-files-in-date-range]
+  ['list-files-newer-than => :list-files-newer-than]
   ;; groups
   ['group => :group]
   ;; date info
@@ -301,6 +313,16 @@
     (file-mtime ((file-for-type location) file-expr env))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## file-hash
+;; `(= (file-hash a)
+;;     (file-hash b))
+;;
+(defmethod exec-interp :file-hash [[_ file-expr] env]
+  (let [location (:location env)]
+    (file-hash ((file-for-type location) file-expr env))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## file-size
 ;; `(>= (file-size)
 ;;      800000)
@@ -308,6 +330,126 @@
 (defmethod exec-interp :file-size [[_ file-expr] env]
   (let [location (:location env)]
     (file-size ((file-for-type location) file-expr env))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## list-files-matching-prefix
+;; `(list-files-matching-prefix "s3://okl-danger/yodaetl/resources/diag")`
+;;
+;; In S3 terms, this is equivalent to `s3cmd ls -r prefix`
+;;
+;; Takes 2 args:
+;; - the prefix string to match against
+;; - options map -- see dwd.files.file-system for details. Note that
+;;   most/all of the options have not been implemented yet!
+;;
+;; Returns an ObjectListing with a lazy seq (!) in the :paths field. The
+;; paths will be in order by date.
+(defmethod exec-interp :list-files-matching-prefix [[_ prefix & [options]] env]
+  (let [location (:location env)
+        fs ((filesystem-for-type location) env)
+        merged-options (merge options {:recursive true})]
+    (list-files-matching-prefix fs prefix merged-options)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## list-files-in-date-range
+;; `(list-files-in-date-range
+;;      "s3://bucket/file/%Y/%m/%d"
+;;      "s3://bucket/file/2014/08/01"
+;;      "s3://bucket/file/2014/08/15")
+;;
+;; Takes 3 args:
+;; - date-expr pattern-string
+;; - date-expr pattern-string formatted with start time
+;; - date-expr pattern-string formatted with end time
+;;
+;; Returns an ObjectListing with a lazy seq in the :paths field. The
+;; paths will be in order by date.
+(defmethod exec-interp :list-files-in-date-range
+  [[_ date-expr-string formatted-start formatted-end] env]
+  (let [location (:location env)
+        fs ((filesystem-for-type location) env)
+        date-expr (de/make-date-expr date-expr-string)
+        prefixes (de/formatted-date-range formatted-start
+                                          formatted-end
+                                          date-expr)
+        check-results (map #(list-files-matching-prefix fs % {:recursive true}) prefixes)]
+    (when (empty? prefixes)
+      (log/warnf "list-files-in-date-range generated an empty date-range!
+                  Probably formatted-start (%s) is in the future from
+                  formatted-end (%s)?"
+                 formatted-start
+                 formatted-end))
+    (if (empty? check-results)
+      (first check-results)
+      (xform-the-result-field (merge-check-results check-results)
+                              #(make-file-listing (apply concat (map :paths %)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## list-files-newer-than
+;; `(list-files-newer-than
+;;      "s3://bucket/file/%Y/%m/%d"
+;;      "America/Los_Angeles"
+;;      "s3://bucket/file/2014/08/01")
+;;
+;; Args:
+;; - date-expr pattern-string
+;; - timezone for date-expr (if nil, utc will be used)(see danger-date-expr
+;;     for acceptable timezone formats)
+;; - formatted start-date
+;;
+;; First, a tz is determined:
+;;   1) A TZ may be specified (in -0800 or in America/Los_Angeles format).
+;;   2) If no TZ specified, check if a TZ is encoded in the date-expr. If so,
+;;      extract the TZ from the formatted-start
+;;   3) If no TZ specified, and no TZ in date-expr, assume UTC.
+;; Then, a formatted-end expr is determined:
+;;   the date-expr is formatted to "now" in that TZ.
+;; Finally, list all files in the date-range between formatted-start and
+;; formatted-end :)
+;;
+;; Returns an ObjectListing with a lazy seq in the :paths field. The
+;; paths will be in order by date.
+(def- default-tz nil)
+(defmethod exec-interp :list-files-newer-than
+  ;; Future plans:
+  ;; - regex-filter option
+  ;; - allow formatted start-date to be empty string.
+  ;;     If the formatted-date-expr-string is empty string, the
+  ;;     behavior is to take everything before the first
+  ;;     date-conversion-specifier (i.e. before the first %Y or
+  ;;     whatever), call that the prefix, and return
+  ;;        (list-files-matching-prefix prefix)
+  ;; - implement a smarter strategy (allowing optimization strategy hints?)
+  ;;   for "infrequent" file based data feeds (like yoda) for which the naive
+  ;;   list-every-instant-at-finest-granularity trick doesn't very well
+  ;;     http://okl-danger.s3.amazonaws.com/yodaetl/jobs/2014-08-19-02-01-04/
+  ;;     http://okl-danger.s3.amazonaws.com/yodaetl/jobs/2014-08-18-02-01-05/
+  [[_ date-expr-string tz formatted-start] env]
+  (let [has-tz (de/has-tz? date-expr-string)
+        extracted-tz (when has-tz
+                       (de/extract-timezone date-expr-string formatted-start))
+        final-tz (cond
+                  (not (nil? tz)) tz
+                  has-tz   extracted-tz
+                  :else    default-tz)
+        date-expr (de/make-date-expr date-expr-string final-tz)
+        now (de/epoch-time-now)
+        formatted-end (de/format-expr date-expr now)]
+    (when (and has-tz
+               (not= final-tz extracted-tz))
+      (let [msg (format
+                 "Warning! Date-expr and formatted-start have different
+                  timezones! Date-expr has tz %s and formatted-start has
+                  timezone %s"
+                 final-tz
+                 extracted-tz)]
+        (log/error msg)
+        (throw (RuntimeException. msg))))
+    (exec-interp (list 'list-files-in-date-range
+                       date-expr-string
+                       formatted-start
+                       formatted-end)
+                 env)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## query

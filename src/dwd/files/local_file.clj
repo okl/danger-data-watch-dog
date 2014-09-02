@@ -6,7 +6,10 @@
   (:require [digest]
             [clj-time.coerce :as c])
   (:require [dwd.files.file :refer [File]]
+            [dwd.files.file-system :refer [FileSystem]]
             [dwd.check-result :refer [make-check-result]]))
+
+;; # File
 
 (deftype LocalFile [file desc]
   File
@@ -33,3 +36,17 @@
 
 (defn make-local-file [expr env]
   (LocalFile. expr (:desc env)))
+
+;; # Filesystem
+
+(deftype LocalFileSystem [desc]
+  FileSystem
+  (list-files-matching-prefix [_ prefix options]
+    (make-check-result
+     {:result :error
+      :data prefix
+      :desc desc
+      :exceptions "List-files-matching-prefix not supported for local filesystem"})))
+
+(defn make-local-file-system [env]
+  (LocalFileSystem. (:desc env)))

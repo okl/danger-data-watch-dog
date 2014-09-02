@@ -40,3 +40,18 @@
 
 (defn make-check-result [config]
   (ConcreteCheckResult. config))
+
+(defn xform-the-result-field [check-result xform]
+  (let [cfg (.config check-result)
+        new-cfg (update-in cfg [:result] xform)]
+    (make-check-result new-cfg)))
+
+(defn merge-check-results [results]
+  (make-check-result
+   {:result (map result results)
+    :exceptions (map exceptions results)
+    :time (map time-executed results)
+    :duration (reduce + (filter number? (map execution-duration results)))
+    :messages (map messages results)
+    :data (map data results)
+    :desc (map description results)}))
