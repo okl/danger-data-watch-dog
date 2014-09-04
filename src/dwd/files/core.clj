@@ -41,6 +41,8 @@
   (file-hash [_]
     (make-error-result type))
   (file-size [_]
+    (make-error-result type))
+  (file-stream [_]
     (make-error-result type)))
 
 (def- file-type-registry
