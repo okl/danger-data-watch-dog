@@ -49,7 +49,13 @@
   (file-hash [_]
     (file-metadata-result :content-md5 cred bucket path desc))
   (file-size [_]
-    (file-metadata-result :content-length cred bucket path desc)))
+    (file-metadata-result :content-length cred bucket path desc))
+  (file-stream [this]
+    (make-check-result
+     {:result (when-let [o (s3/get-object cred bucket path)]
+                (:content o))
+      :data path
+      :desc desc})))
 
 (defn make-s3-file [expr env]
   (let [secret-key (secret-key env)

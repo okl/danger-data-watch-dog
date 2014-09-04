@@ -92,7 +92,13 @@
      {:result :error
       :data file
       :desc desc
-      :exceptions "Hash not supported via SFTP"})))
+      :exceptions "Hash not supported via SFTP"}))
+  (file-stream [_]
+    (make-check-result
+     {:result :error
+      :data file
+      :desc desc
+      :exceptions "file-stream not yet implemented for SFTP"})))
 
 (defn make-sftp-file [expr env]
   (let [username (username env)
@@ -114,7 +120,7 @@
      {:result :error
       :data prefix
       :desc desc
-      :exceptions "List-files-matching-prefix not supported for SFTP filesystem"})))
+      :exceptions "List-files-matching-prefix not yet implemented for SFTP filesystem"})))
 
 (defn make-sftp-file-system [env]
   (let [username (username env)

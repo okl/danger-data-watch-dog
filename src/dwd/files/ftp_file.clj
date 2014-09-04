@@ -62,7 +62,13 @@
      {:result :error
       :data file
       :desc desc
-      :exceptions "Hash not supported via FTP"})))
+      :exceptions "Hash not supported via FTP"}))
+  (file-stream [_]
+    (make-check-result
+     {:result :error
+      :data file
+      :desc desc
+      :exceptions "file-stream not yet implemented for FTP"})))
 
 (defn make-ftp-file [expr env]
   (let [username (username env)
@@ -84,7 +90,7 @@
      {:result :error
       :data prefix
       :desc desc
-      :exceptions "List-files-matching-prefix not supported for FTP filesystem"})))
+      :exceptions "List-files-matching-prefix not yet implemented for FTP filesystem"})))
 
 (defn make-ftp-file-system [env]
   (let [uri (uri env)]

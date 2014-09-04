@@ -2,7 +2,8 @@
   "For local/nfs files"
   {:author "Eric Sayle"
    :date "Wed Jul 23 13:09:58 PDT 2014"}
-  (:require [clojure.java.io :refer [as-file]])
+  (:require [clojure.java.io :refer [as-file
+                                     input-stream]])
   (:require [digest]
             [clj-time.coerce :as c])
   (:require [dwd.files.file :refer [File]]
@@ -32,6 +33,11 @@
     (make-check-result
      {:result (.length (as-file file))
       :data file
+      :desc desc}))
+  (file-stream [_]
+    (make-check-result
+     {:result (input-stream (as-file file))
+      :data file
       :desc desc})))
 
 (defn make-local-file [expr env]
@@ -46,7 +52,7 @@
      {:result :error
       :data prefix
       :desc desc
-      :exceptions "List-files-matching-prefix not supported for local filesystem"})))
+      :exceptions "List-files-matching-prefix not yet implemented for local filesystem"})))
 
 (defn make-local-file-system [env]
   (LocalFileSystem. (:desc env)))
