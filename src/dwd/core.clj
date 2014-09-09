@@ -437,6 +437,8 @@
   ;;   list-every-instant-at-finest-granularity trick doesn't very well
   ;;     http://okl-danger.s3.amazonaws.com/yodaetl/jobs/2014-08-19-02-01-04/
   ;;     http://okl-danger.s3.amazonaws.com/yodaetl/jobs/2014-08-18-02-01-05/
+  ;; - allow a "lookahead" option to look into the future by, say, 1 day,
+  ;;   rather than just looking until now
   [[_ date-expr-string tz formatted-start] env]
   (let [has-tz (de/has-tz? date-expr-string)
         extracted-tz (when has-tz
