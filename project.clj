@@ -7,8 +7,8 @@
                  [org.clojure/tools.logging "0.2.6"]
                  [com.onekingslane.danger/diesel "1.0.1"]
                  [vertica-jdk5/vertica-jdk5 "6.1.3-0"]
-                 [com.onekingslane.danger/clojure-common-utils "0.0.19"]
-                 [com.onekingslane.danger/date-expr "0.2.0"]
+                 [com.onekingslane.danger/clojure-common-utils "0.0.24"]
+                 [com.onekingslane.danger/date-expr "0.3.0"]
                  [com.velisco/clj-ftp "0.3.1"]
                  [clj-ssh "0.5.10"]
                  [clj-yaml "0.4.0"]
@@ -16,6 +16,7 @@
                  [de.ubercode.clostache/clostache "1.4.0"]
                  [clj-aws-s3 "0.3.9"]
                  [digest "1.4.4"]]
+  :plugins [[lein-localrepo "0.5.3"]]
   :main dwd.cli
   :profiles {:dev {:dependencies [[org.xerial/sqlite-jdbc "3.7.2"]
                                   [org.slf4j/slf4j-simple "1.7.5"]]
