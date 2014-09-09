@@ -6,7 +6,8 @@
             [clojure.java.jdbc :as j]
             [clojure.tools.logging :as log]
             [clojure.java.shell :refer [sh]])
-  (:require [diesel.core :refer [definterpreter]]
+  (:require [diesel.core :refer [definterpreter
+                                 denamespace-form]]
             [roxxi.utils.print :refer [print-expr]]
             [roxxi.utils.common :refer [def-]]
             [clj-time.core :as t]
@@ -113,6 +114,9 @@
   ['group => :group]
   ;; date info
   [date-op? => :date-op])
+
+(defn exec-interp-namespaced [form env]
+  (exec-interp (denamespace-form form) env))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## testing
