@@ -15,13 +15,13 @@
   (:require [dwd.files.file :refer [file-present?
                                     file-mtime
                                     file-size
-                                    file-hash]]
+                                    file-hash
+                                    file-stream]]
             [dwd.files.file-system :refer [list-files-matching-prefix
                                            make-file-listing]]
             [dwd.files.core :refer [file-for-type
                                     filesystem-for-type]]
             [dwd.check-result :refer :all]))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; helpers
@@ -105,6 +105,7 @@
   ['file-mtime => :file-mtime]
   ['file-hash => :file-hash]
   ['file-size => :file-size]
+  ['file-stream => :file-stream]
   ['list-files-matching-prefix => :list-files-matching-prefix]
   ['list-files-in-date-range => :list-files-in-date-range]
   ['list-files-newer-than => :list-files-newer-than]
@@ -321,7 +322,6 @@
   (let [location (:location env)]
     (file-hash ((file-for-type location) file-expr env))))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## file-size
 ;; `(>= (file-size)
@@ -330,6 +330,15 @@
 (defmethod exec-interp :file-size [[_ file-expr] env]
   (let [location (:location env)]
     (file-size ((file-for-type location) file-expr env))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ## file-stream
+;; `(file-stream)
+;;
+(defmethod exec-interp :file-stream [[_ file-expr] env]
+  (let [location (:location env)]
+    (file-stream ((file-for-type location) file-expr env))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## list-files-matching-prefix
