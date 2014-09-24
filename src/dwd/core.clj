@@ -377,6 +377,11 @@
 ;;
 ;; Returns an ObjectListing with a lazy seq in the :paths field. The
 ;; paths will be in order by date.
+;;
+;; If the env has a truthy value for the key `:exclude-start?`,
+;; then paths under the formatted-start will be excluded.
+;; If the env has a truthy value for the key `:exclude-end?`,
+;; then paths under the formatted-end will be excluded.
 (defmethod exec-interp :list-files-in-date-range
   [[_ date-expr-string formatted-start formatted-end] env]
   (let [location (:location env)
@@ -385,10 +390,13 @@
         prefixes (de/formatted-date-range formatted-start
                                           formatted-end
                                           date-expr)
-        check-results (map #(list-files-matching-prefix fs % {:recursive true}) prefixes)]
+        prefixes (if (:exclude-start? env) (rest prefixes) prefixes)
+        prefixes (if (:exclude-end? env) (butlast prefixes) prefixes)
+        check-results (map #(list-files-matching-prefix fs % {:recursive true})
+                           prefixes)]
     (when (empty? prefixes)
       (log/warnf "list-files-in-date-range generated an empty date-range!
-                  Probably formatted-start (%s) is in the future from
+                  Possibly formatted-start (%s) is in the future from
                   formatted-end (%s)?"
                  formatted-start
                  formatted-end))
@@ -448,7 +456,7 @@
                   has-tz   extracted-tz
                   :else    default-tz)
         date-expr (de/make-date-expr date-expr-string final-tz)
-        now (de/epoch-time-now)
+        now (:seconds (de/epoch-time-now))
         formatted-end (de/format-expr date-expr now)]
     (when (and has-tz
                (not= final-tz extracted-tz))
@@ -464,7 +472,7 @@
                        date-expr-string
                        formatted-start
                        formatted-end)
-                 env)))
+                 (merge env {:exclude-start? true}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## query
