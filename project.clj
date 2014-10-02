@@ -1,5 +1,6 @@
 (defproject com.onekingslane.danger/data-watch-dog "0.1.0"
   :description "Monitoring library for specifying checks and executing them"
+  :url "https://github.com/okl/danger-data-watch-dog"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
