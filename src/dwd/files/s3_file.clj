@@ -20,8 +20,11 @@
   (let [path-broken-up (split s3-url #"/")]
     (nth path-broken-up 2)))
 (defn s3-key [s3-url]
-  (let [path-broken-up (split s3-url #"/")]
-    (join "/" (nthrest path-broken-up 3))))
+  (let [path-broken-up (split s3-url #"/")
+        rejoined (join "/" (nthrest path-broken-up 3))]
+    (if (.endsWith s3-url "/")
+      (str rejoined "/")
+      rejoined)))
 
 ;; # File
 
@@ -74,42 +77,55 @@
 
 ;; # Filesystem
 
-(defn- ls-chunk [s3-url cred marker]
+(defn- ls-chunk [s3-url cred marker options]
   (log/debug (format "getting chunk for s3-url=[%s] and marker=[%s]" s3-url marker))
   (let [bucket (bucket s3-url)
-        matches (s3/list-objects cred bucket {:prefix (s3-key s3-url)
-                                              :marker marker})
+        merged (merge options {:prefix (s3-key s3-url)
+                               :marker marker})
+        matches (s3/list-objects cred bucket merged)
         objects (:objects matches)
         names (map #(str "s3://" bucket "/" (:key %)) objects)]
     {:more? (:truncated? matches)
      :names names
+     :common-prefixes (:common-prefixes matches)
      :marker marker
      :next-marker (:next-marker matches)}))
 
 (defn- lazily-ls-chunks
+  "Returns a vector with two lazy-seqs --
+    first element of the vector is a lazy seqs of paths that match,
+    second element of the vector is a lazy seq of common-prefixes that match."
   ([s3-url cred]
-     (lazily-ls-chunks s3-url cred nil))
-  ([s3-url cred marker]
-     (let [this-chunk (ls-chunk s3-url cred marker)
+     (lazily-ls-chunks s3-url cred {}))
+  ([s3-url cred options]
+     (lazily-ls-chunks s3-url cred options nil))
+  ([s3-url cred options marker]
+     (let [;; XXX s3 api has just :delimiter, but dwd api has :delimiter and :recursive
+           adjusted-options nil
+           this-chunk (ls-chunk s3-url cred marker options)
            names (:names this-chunk)
+           common-prefixes (:common-prefixes this-chunk)
            next-marker (:next-marker this-chunk)]
        (if (not (:more? this-chunk))
-         names
+         [names, common-prefixes]
          ;; This is efficient with regards to network I/O,
          ;; but I'm not sure if it's efficient with regards to memory.
          ;; i.e. I'm not sure if it holds onto the entire-sequence-thus-far
          ;; in memory or not... I *think* there aren't any closures in here
          ;; which would mean that's determined by the caller. So hooray,
          ;; probably.
-         (lazy-cat names (lazily-ls-chunks s3-url cred next-marker))))))
+         (let [moar (lazy-seq (lazily-ls-chunks s3-url cred options next-marker))]
+           [(lazy-cat names (first moar)),
+            (lazy-cat common-prefixes (second moar))])))))
 
 (deftype S3FileSystem [cred desc]
   FileSystem
   (list-files-matching-prefix [_ prefix options]
-    (make-check-result
-     {:result (make-file-listing (lazily-ls-chunks prefix cred) nil false)
-      :data prefix
-      :desc desc})))
+    (let [[paths common-prefixes] (lazily-ls-chunks prefix cred options)]
+      (make-check-result
+       {:result (make-file-listing paths common-prefixes false)
+        :data prefix
+        :desc desc}))))
 
 (defn make-s3-file-system [env]
   (let [secret-key (secret-key env)

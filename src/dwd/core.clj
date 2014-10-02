@@ -360,8 +360,20 @@
 (defmethod exec-interp :list-files-matching-prefix [[_ prefix & [options]] env]
   (let [location (:location env)
         fs ((filesystem-for-type location) env)
-        merged-options (merge options {:recursive true})]
+        defaults {:recursive true
+                  :delimiter nil}
+        merged-options (merge options defaults)]
     (list-files-matching-prefix fs prefix merged-options)))
+
+(defmethod exec-interp :list-common-prefixes-matching-prefix [[_ prefix & [options]] env]
+  (let [location (:location env)
+        fs ((filesystem-for-type location) env)
+        defaults {:recursive false
+                  :delimiter "/"}
+        merged-options (merge options defaults)]
+    (list-files-matching-prefix fs prefix merged-options)))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## list-files-in-date-range
@@ -431,6 +443,68 @@
 ;; Returns an ObjectListing with a lazy seq in the :paths field. The
 ;; paths will be in order by date.
 (def- default-tz nil)
+(defn coarser-range [date-expr-pattern-str]
+  (loop [curr date-expr-pattern-str
+         all (vector date-expr-pattern-str)]
+    (let [coarsened (de/coarser curr)]
+      (if (nil? coarsened)
+        (butlast all)
+        (recur coarsened (conj all coarsened))))))
+(defn coarsest [date-expr-pattern-str]
+  (last (coarser-range date-expr-pattern-str)))
+
+(comment
+  (coarser-range "s3://bucket/%Y/foo")
+  (coarser-range "s3://bucket/%Y/%m/%d/foo")
+  (coarsest "s3://bucket/%Y/%m/%d/foo"))
+
+(comment
+  (str
+   "Alternative strategy for list-files-newer-than:"
+   "list up the coarser-hierarchy (of latest)"
+   "union"
+   "list at the coarsest grain (after latest, until now)"
+
+   ;; if date-expr is /%Y/%m/%d and latest is /2014/12/30:
+   ;; on 12/31 you list (/2014/12, /2014, and that's it)
+   ;; on 1/1 you list (/2014/12, /2014, and /2015)
+   ;; on 1/2 you list (/2014/12, /2014, and /2015)
+   ;; ...
+   ;; on 1/1/2016 you list (/2014/12, /2014, /2015, and /2016)
+   ))
+(defn prefix-matches? [date-expr-obj string]
+  false)
+(defn prefix-newer-than? [date-expr-obj newer-than-this candidate]
+  false)
+(defn list-new-prefixes-matching-coarse-prefix [coarse-de env]
+  (let [check-res (exec-interp (list 'list-common-prefixes-matching-prefix coarse-de) env)
+        prefs (:common-prefixes (result check-res))
+        prev nil
+        now nil]
+    (filter (comp #(not (prefix-newer-than? date-expr now %))
+                  #(prefix-newer-than? date-expr prev %)
+                  #(prefix-matches? date-expr %))
+            prefs)))
+(defn list-prefixes-newer-than [date-expr-pattern-str tz newer-than-this-path env]
+  (let [date-expr (de/make-date-expr date-expr-pattern-str tz)
+        now (:seconds (de/epoch-time-now))
+        formatted-end (de/format-expr date-expr now)
+
+        ;; XXX There's an optimization opportunity here:
+        ;; if latest is already at the max value it can be, don't need to query it
+        c-hier (map #(de/make-date-expr % tz)
+                    (rest (coarser-range date-expr-pattern-str)))
+        hier-matches (mapcat #(list-new-prefixes-matching-coarse-prefix % env) c-hier)
+        
+        c-max (last c-hier)
+        max-matches (exec-interp (list 'list-files-in-date-range
+                                       c-max
+                                       newer-than-this-path
+                                       formatted-end)
+                                 (merge env {:exclude-start? true}))
+        ]
+    (concat hier-matches max-matches)))
+
 (defmethod exec-interp :list-files-newer-than
   ;; Future plans:
   ;; - regex-filter option
