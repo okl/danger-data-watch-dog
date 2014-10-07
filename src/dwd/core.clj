@@ -397,9 +397,10 @@
     (cond
      (empty? prefixes)
      (do
-       (log/warnf "list-files-in-date-range generated an empty date-range!
-                  Possibly formatted-start (%s) is in the future from
-                  formatted-end (%s)? Returning empty check result."
+       (log/infof (str
+                   "list-files-in-date-range generated an empty date-range! "
+                   "Possibly formatted-start (%s) is in the future from "
+                   "formatted-end (%s)? Returning empty check result.")
                   formatted-start
                   formatted-end)
        (make-check-result
