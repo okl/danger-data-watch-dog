@@ -9,7 +9,7 @@
   (:require [diesel.core :refer :all]))
 
 (def config
-  (yaml/parse-string (slurp (io/resource "icinga.yml"))))
+  (future (yaml/parse-string (slurp (io/resource "icinga.yml")))))
 
 (defn- delete-file-recursively
   "Delete file f. If it's a directory, recursively delete all its contents.
@@ -27,10 +27,10 @@ http://clojure.github.io/clojure-contrib/io-api.html"
   (join " " args))
 
 (defn- get-hostname []
-  (get config :hostname))
+  (:hostname @config))
 
 (defn- get-url []
-  (:url config))
+  (:url @config))
 
 (defn- append-desc [env-map desc]
   (update-in env-map [:desc] #(joins % desc)))
