@@ -21,6 +21,7 @@
   :repositories [["danger"
                   {:url "s3p://okl-danger-wagon/releases/"}]]
   :plugins [[lein-localrepo "0.5.3"]]
+  :jvm-opts ["-Djna.nosys=true"]
   :main dwd.cli
   :aot [dwd.cli]
   :profiles {:dev {:dependencies [[org.xerial/sqlite-jdbc "3.7.2"]
