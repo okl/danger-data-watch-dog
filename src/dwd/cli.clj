@@ -2,6 +2,7 @@
   "Command line driver for DWD"
   {:author "Eric Sayle"
    :date "Wed Jul 16 16:48:09 PDT 2014"}
+  (:gen-class)
   (:require [clojure.java.io :as io])
   (:require [dwd.core :refer [exec-interp]]
             [dwd.id-interp :refer [id-interp]]
