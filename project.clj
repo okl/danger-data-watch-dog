@@ -19,6 +19,7 @@
                  [digest "1.4.4"]]
   :plugins [[lein-localrepo "0.5.3"]]
   :main dwd.cli
+  :aot [dwd.cli]
   :profiles {:dev {:dependencies [[org.xerial/sqlite-jdbc "3.7.2"]
                                   [org.slf4j/slf4j-simple "1.7.5"]]
                    :resource-paths ["test/logging"]}})
