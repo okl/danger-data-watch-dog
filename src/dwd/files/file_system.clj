@@ -6,6 +6,8 @@
 (defrecord FileListing [paths common-prefixes truncated? marker next-marker])
 
 (defn make-file-listing
+  ([]
+     (make-file-listing (list)))
   ([paths]
      (make-file-listing paths nil))
   ([paths common-prefixes]

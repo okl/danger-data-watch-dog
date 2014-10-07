@@ -394,16 +394,27 @@
         prefixes (if (:exclude-end? env) (butlast prefixes) prefixes)
         check-results (map #(list-files-matching-prefix fs % {:recursive true})
                            prefixes)]
-    (when (empty? prefixes)
-      (log/warnf "list-files-in-date-range generated an empty date-range!
+    (cond
+     (empty? prefixes)
+     (do
+       (log/warnf "list-files-in-date-range generated an empty date-range!
                   Possibly formatted-start (%s) is in the future from
-                  formatted-end (%s)?"
-                 formatted-start
-                 formatted-end))
-    (if (empty? check-results)
-      (first check-results)
-      (xform-the-result-field (merge-check-results check-results)
-                              #(make-file-listing (apply concat (map :paths %)))))))
+                  formatted-end (%s)? Returning empty check result."
+                  formatted-start
+                  formatted-end)
+       (make-check-result
+        {:result (make-file-listing)
+         :duration 0
+         :messages [(str "list-files-in-date-range generated an empty "
+                         "date-range! Artificially creating empty check "
+                         "result.")]
+         :desc (:desc env)}))
+     (empty? check-results)
+     (first check-results)
+     :else
+     (xform-the-result-field
+      (merge-check-results check-results)
+      #(make-file-listing (apply concat (map :paths %)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ## list-files-newer-than
