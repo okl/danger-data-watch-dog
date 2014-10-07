@@ -1,3 +1,7 @@
+# 0.1.2
+
+ - list-files-in-date-range can now return empty lists (38bb93d)
+
 # 0.1.1
 
  - project: use new vertica jdbc naming (415178e)
