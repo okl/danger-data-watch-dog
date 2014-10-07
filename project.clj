@@ -17,6 +17,9 @@
                  [de.ubercode.clostache/clostache "1.4.0"]
                  [clj-aws-s3 "0.3.9"]
                  [digest "1.4.4"]]
+  ;; provides vertica-jdbc5 - use localrepo if you don't have access to this
+  :repositories [["danger"
+                  {:url "s3p://okl-danger-wagon/releases/"}]]
   :plugins [[lein-localrepo "0.5.3"]]
   :main dwd.cli
   :aot [dwd.cli]
